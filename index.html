@@ -1,75 +1,83 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="TonyST">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0b0b0f">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>TonyST Web</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=0.4">
+  <link rel="stylesheet" href="main.css" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="description" content="TonyST Web, a flat iPhone friendly Atari ST web app using Hatari WebAssembly." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#111118" />
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">Atari ST on iPhone</p>
-      <h1>TonyST Web</h1>
-    </div>
-    <button id="fullscreenButton" class="ghost">Full screen</button>
-  </header>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="kicker">Atari ST on iPhone</p>
+        <h1>TonyST Web</h1>
+      </div>
+      <button class="top-button" id="fullscreenButton" type="button">Full screen</button>
+    </header>
 
-  <main class="layout">
-    <section class="screen-card" aria-label="Emulator display">
-      <div class="screen-bezel">
-        <canvas id="screen" width="832" height="588" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-        <div id="overlayStatus" class="overlay-status">Loading Hatari WebAssembly engine...</div>
+    <section class="screen-card" aria-label="Atari ST emulator screen">
+      <div class="screen-wrap">
+        <iframe
+          id="emulatorFrame"
+          class="emulator-frame"
+          src="hatari/tonyst.html"
+          title="Hatari Atari ST emulator"
+          allow="fullscreen"
+        ></iframe>
+        <div id="loadingOverlay" class="loading-overlay">
+          <strong>TonyST Web</strong>
+          <span id="engineStatus">Starting Hatari WebAssembly</span>
+        </div>
       </div>
       <div class="status-row">
-        <span id="engineStatus">Engine, loading</span>
-        <span id="fileStatus">No files loaded</span>
+        <span id="engineLabel">Engine, starting</span>
+        <span id="fileLabel">Built in demo disk</span>
       </div>
     </section>
 
-    <section class="controls-card" aria-label="Emulator controls">
-      <div class="file-grid">
-        <label class="file-button">
-          <span>Load TOS or EmuTOS</span>
-          <input id="tosInput" type="file" accept=".img,.rom,.bin">
-        </label>
-        <label class="file-button">
-          <span>Load disk</span>
-          <input id="diskInput" type="file" accept=".st,.msa,.stx,.dim,.ipf,.zip">
-        </label>
-      </div>
+    <section class="controls-card" aria-label="TonyST controls">
+      <input id="tosInput" class="hidden-input" type="file" accept=".img,.rom,.tos" />
+      <input id="diskInput" class="hidden-input" type="file" accept=".st,.msa,.stx,.dim,.ipf,.zip,.img" />
+
+      <button class="wide-button" id="tosButton" type="button">Load TOS or EmuTOS</button>
+      <button class="wide-button" id="diskButton" type="button">Load disk</button>
 
       <div class="button-row">
-        <button id="runButton">Run</button>
-        <button id="pauseButton">Pause</button>
-        <button id="resetButton">Reset</button>
+        <button id="runButton" type="button">Run</button>
+        <button id="pauseButton" type="button">Pause</button>
+        <button id="resetButton" type="button">Reset</button>
       </div>
 
-      <div class="touch-pad" aria-label="Touch joystick">
-        <div class="dpad">
-          <button data-key="ArrowUp">▲</button>
-          <div>
-            <button data-key="ArrowLeft">◀</button>
-            <button data-key="ArrowDown">▼</button>
-            <button data-key="ArrowRight">▶</button>
-          </div>
+      <div class="touch-zone">
+        <div class="dpad" aria-label="Directional pad">
+          <button class="pad up" data-key="ArrowUp" type="button" aria-label="Up">▲</button>
+          <button class="pad left" data-key="ArrowLeft" type="button" aria-label="Left">◀</button>
+          <button class="pad down" data-key="ArrowDown" type="button" aria-label="Down">▼</button>
+          <button class="pad right" data-key="ArrowRight" type="button" aria-label="Right">▶</button>
         </div>
-        <button class="fire" data-key=" ">Fire</button>
+        <button class="fire" id="fireButton" data-key="Space" type="button">Fire</button>
       </div>
 
-      <details>
+      <details class="notes">
         <summary>What works today?</summary>
-        <p>v0.4 loads the Hatari WebAssembly engine from engine/hatari/hatari.js, hatari.wasm and hatari.data. The engine should boot using the files inside hatari.data. Loading your own disk images into a running Hatari session is the next stage.</p>
+        <p>This version removes the 3D room and uses the working Hatari iframe directly. The built in demo boots from the existing Hatari files. Disk and TOS import is experimental and depends on the Hatari WebAssembly build accepting local files at boot.</p>
       </details>
     </section>
+
+    <footer class="credit">
+      Uses the Mesmotronic browser Hatari build. Keep the original licence and credit files in the repo.
+    </footer>
   </main>
 
-  <script src="app.js?v=0.4"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,266 +1,165 @@
-const TonyST = (() => {
-  const state = {
-    tos: null,
-    disk: null,
-    engineReady: false,
-    engineLoading: false,
-    module: null
+(() => {
+  const frame = document.getElementById("emulatorFrame");
+  const overlay = document.getElementById("loadingOverlay");
+  const engineStatus = document.getElementById("engineStatus");
+  const engineLabel = document.getElementById("engineLabel");
+  const fileLabel = document.getElementById("fileLabel");
+
+  const tosInput = document.getElementById("tosInput");
+  const diskInput = document.getElementById("diskInput");
+  const tosButton = document.getElementById("tosButton");
+  const diskButton = document.getElementById("diskButton");
+  const runButton = document.getElementById("runButton");
+  const pauseButton = document.getElementById("pauseButton");
+  const resetButton = document.getElementById("resetButton");
+  const fullscreenButton = document.getElementById("fullscreenButton");
+
+  let tosUrl = "";
+  let diskUrl = "";
+  let tosName = "";
+  let diskName = "";
+  let isPaused = false;
+
+  const revoke = (url) => {
+    if (url) URL.revokeObjectURL(url);
   };
 
-  const screen = document.getElementById('screen');
-  const overlayStatus = document.getElementById('overlayStatus');
-  const engineStatus = document.getElementById('engineStatus');
-  const fileStatus = document.getElementById('fileStatus');
+  const status = (label, detail) => {
+    engineLabel.textContent = label;
+    if (detail) engineStatus.textContent = detail;
+  };
 
-  function setStatus(message) {
-    if (overlayStatus) overlayStatus.textContent = message;
-    console.log(`[TonyST] ${message}`);
-  }
-
-  function setEngineStatus(message) {
-    if (engineStatus) engineStatus.textContent = message;
-  }
-
-  function updateFileStatus() {
-    const bits = [];
-    if (state.tos) bits.push(`TOS: ${state.tos.name}`);
-    if (state.disk) bits.push(`Disk: ${state.disk.name}`);
-    if (fileStatus) fileStatus.textContent = bits.length ? bits.join('  |  ') : 'No files loaded';
-  }
-
-  async function readFile(file) {
-    return {
-      name: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),
-      bytes: new Uint8Array(await file.arrayBuffer())
-    };
-  }
-
-  async function handleTosFile(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    state.tos = await readFile(file);
-    updateFileStatus();
-    setStatus(`Loaded ${state.tos.name}. This v0.4 test build boots from the TOS inside hatari.data. Custom TOS boot wiring is next.`);
-    pushFilesToHatariIfReady();
-  }
-
-  async function handleDiskFile(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file) return;
-    state.disk = await readFile(file);
-    updateFileStatus();
-    setStatus(`Loaded ${state.disk.name}. I will copy it into Hatari's virtual drive if the engine is ready.`);
-    pushFilesToHatariIfReady();
-  }
-
-  function mkdirp(FS, path) {
-    const parts = path.split('/').filter(Boolean);
-    let current = '';
-    for (const part of parts) {
-      current += '/' + part;
-      try { FS.mkdir(current); } catch (_) {}
+  const setFileLabel = () => {
+    if (diskName && tosName) {
+      fileLabel.textContent = `${diskName}, ${tosName}`;
+    } else if (diskName) {
+      fileLabel.textContent = diskName;
+    } else if (tosName) {
+      fileLabel.textContent = tosName;
+    } else {
+      fileLabel.textContent = "Built in demo disk";
     }
-  }
+  };
 
-  function pushFilesToHatariIfReady() {
-    if (!state.engineReady || !state.module || !state.module.FS) {
-      return;
-    }
+  const buildSrc = () => {
+    const params = new URLSearchParams();
+    if (tosUrl) params.set("tos", tosUrl);
+    if (diskUrl) params.set("disk", diskUrl);
+    if (diskName) params.set("diskName", diskName);
+    if (tosName) params.set("tosName", tosName);
+    const qs = params.toString();
+    return `hatari/tonyst.html${qs ? `?${qs}` : ""}`;
+  };
 
-    const FS = state.module.FS;
+  const reboot = () => {
+    overlay.classList.remove("is-hidden");
+    status("Engine, starting", diskName ? "Booting selected disk" : "Starting Hatari WebAssembly");
+    setFileLabel();
+    frame.src = buildSrc();
+  };
+
+  const focusEmulator = () => {
     try {
-      mkdirp(FS, '/share/hatari/fs/TONYST');
-
-      if (state.tos) {
-        FS.writeFile(`/share/hatari/fs/TONYST/${state.tos.name}`, state.tos.bytes);
-      }
-
-      if (state.disk) {
-        FS.writeFile(`/share/hatari/fs/TONYST/${state.disk.name}`, state.disk.bytes);
-      }
-
-      setStatus('Files copied into Hatari virtual drive under TONYST. Full floppy mounting is the next boss fight.');
-    } catch (error) {
-      setStatus(`Could not copy files into Hatari: ${error.message}`);
-    }
-  }
-
-  function attachHatariModule(module) {
-    state.module = module;
-    state.engineReady = true;
-    setEngineStatus('Engine, ready');
-    setStatus('Hatari engine loaded. If the screen is blank for a few seconds, give it a moment, it is very 1985.');
-    pushFilesToHatariIfReady();
-  }
-
-  function loadHatariEngine() {
-    if (state.engineLoading || state.engineReady) return;
-    state.engineLoading = true;
-    setEngineStatus('Engine, loading');
-    setStatus('Loading engine/hatari/hatari.js...');
-
-    const args = [
-      '--desktop', 'false',
-      '--machine', 'megaste',
-      '--statusbar', 'false',
-      '--memsize', '4',
-      '--cpuclock', '16'
-    ];
-
-    window.Module = {
-      preRun: [],
-      postRun: [],
-      canvas: screen,
-      totalDependencies: 0,
-      print: text => console.log('[Hatari]', text),
-      printErr: text => console.error('[Hatari]', text),
-      locateFile: path => `engine/hatari/${path}`,
-      setStatus: text => {
-        console.log('[Hatari]', text);
-        if (text) setStatus(text);
-      },
-      monitorRunDependencies: function (remaining) {
-        this.totalDependencies = Math.max(this.totalDependencies, remaining);
-        if (remaining) {
-          setEngineStatus('Engine, preparing');
-          setStatus(`Preparing Hatari... (${this.totalDependencies - remaining}/${this.totalDependencies})`);
-        } else {
-          setEngineStatus('Engine, starting');
-          setStatus('All Hatari downloads complete. Starting...');
-        }
-      },
-      onRuntimeInitialized: () => {
-        attachHatariModule(window.Module);
-      },
-      get arguments() {
-        return args;
-      },
-      set arguments(value) {
-        for (let i = 0; i < value.length; i += 2) {
-          if (args.indexOf(value[i]) === -1) {
-            args.push(value[i], value[i + 1]);
-          }
-        }
-        console.log('[Hatari args]', args);
-      }
-    };
-
-    window.onerror = message => {
-      setEngineStatus('Engine, error');
-      setStatus(`Error: ${message}`);
-    };
-
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = 'engine/hatari/hatari.js?v=0.4';
-    script.onload = () => setStatus('Hatari script loaded. Waiting for WebAssembly runtime...');
-    script.onerror = () => {
-      setEngineStatus('Engine, missing');
-      setStatus('Could not load engine/hatari/hatari.js. Check the file path on GitHub Pages.');
-    };
-    document.body.appendChild(script);
-  }
-
-  function run() {
-    if (!state.engineReady) {
-      setStatus('Engine is still loading. Wait a few seconds, then refresh once if it sticks.');
-      return;
-    }
-
-    setStatus('Hatari should already be running. The Run button is now just a status check.');
-    if (screen) screen.focus();
-  }
-
-  function pause() {
-    setStatus('Pause is not wired yet. Engine loading is the current win.');
-  }
-
-  function reset() {
-    setStatus('Reset is not wired yet. Refresh the page to restart this v0.4 test build.');
-  }
-
-  function drawPlaceholder(title, subtitle) {
-    if (!screen) return;
-    const ctx = screen.getContext('2d');
-    ctx.clearRect(0, 0, screen.width, screen.height);
-    ctx.fillStyle = '#050505';
-    ctx.fillRect(0, 0, screen.width, screen.height);
-    ctx.fillStyle = '#f5f7fb';
-    ctx.font = 'bold 44px system-ui, sans-serif';
-    ctx.fillText(title, 48, 100);
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '28px system-ui, sans-serif';
-    ctx.fillText(subtitle, 48, 146);
-    ctx.font = '22px system-ui, sans-serif';
-    ctx.fillText('Loading engine/hatari/hatari.js, hatari.wasm and hatari.data.', 48, 208);
-  }
-
-  function keyboardEvent(key, type) {
-    window.dispatchEvent(new KeyboardEvent(type, { key, bubbles: true }));
-  }
-
-  function wireControls() {
-    document.getElementById('tosInput').addEventListener('change', handleTosFile);
-    document.getElementById('diskInput').addEventListener('change', handleDiskFile);
-    document.getElementById('runButton').addEventListener('click', run);
-    document.getElementById('pauseButton').addEventListener('click', pause);
-    document.getElementById('resetButton').addEventListener('click', reset);
-
-    document.querySelectorAll('[data-key]').forEach(button => {
-      const key = button.getAttribute('data-key');
-      button.addEventListener('pointerdown', event => {
-        event.preventDefault();
-        try { button.setPointerCapture(event.pointerId); } catch (_) {}
-        keyboardEvent(key, 'keydown');
-        if (screen) screen.focus();
-      });
-      button.addEventListener('pointerup', event => {
-        event.preventDefault();
-        keyboardEvent(key, 'keyup');
-      });
-      button.addEventListener('pointercancel', event => {
-        event.preventDefault();
-        keyboardEvent(key, 'keyup');
-      });
-    });
-
-    document.getElementById('fullscreenButton').addEventListener('click', async () => {
-      try {
-        if (!document.fullscreenElement) {
-          await document.documentElement.requestFullscreen();
-        } else {
-          await document.exitFullscreen();
-        }
-      } catch (_) {
-        setStatus('Full screen is limited on some iPhone Safari versions. Add to Home Screen for the best result.');
-      }
-    });
-  }
-
-  function boot() {
-    wireControls();
-    drawPlaceholder('TonyST Web', 'Loading Hatari WebAssembly');
-    setEngineStatus('Engine, loading');
-    updateFileStatus();
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=0.4').catch(() => {});
-    }
-
-    loadHatariEngine();
-  }
-
-  return {
-    boot,
-    attachHatariModule,
-    loadHatariEngine,
-    pushFilesToHatariIfReady,
-    run,
-    pause,
-    reset,
-    state
+      frame.focus();
+      const win = frame.contentWindow;
+      const canvas = win?.document?.getElementById("canvas");
+      canvas?.focus();
+    } catch (_) {}
   };
-})();
 
-window.TonyST = TonyST;
-window.addEventListener('DOMContentLoaded', TonyST.boot);
+  const sendKey = (code, down) => {
+    focusEmulator();
+    const key = code === "Space" ? " " : code.replace("Arrow", "");
+    const eventInit = {
+      key,
+      code,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    };
+    try {
+      const win = frame.contentWindow;
+      const target = win?.document?.getElementById("canvas") || win?.document || win;
+      const event = new KeyboardEvent(down ? "keydown" : "keyup", eventInit);
+      target.dispatchEvent(event);
+      win?.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", eventInit));
+    } catch (_) {}
+  };
+
+  frame.addEventListener("load", () => {
+    status("Engine, loaded", diskName ? "Selected disk sent to Hatari" : "Built in Hatari demo loaded");
+    setTimeout(() => overlay.classList.add("is-hidden"), 900);
+    setTimeout(focusEmulator, 1000);
+  });
+
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (event.data?.type === "tonyst-status") {
+      status(event.data.label || "Engine, loaded", event.data.detail || "Hatari ready");
+      if (event.data.hideOverlay) overlay.classList.add("is-hidden");
+    }
+    if (event.data?.type === "tonyst-error") {
+      status("Engine, error", event.data.detail || "Hatari error");
+      overlay.classList.remove("is-hidden");
+    }
+  });
+
+  tosButton.addEventListener("click", () => tosInput.click());
+  diskButton.addEventListener("click", () => diskInput.click());
+
+  tosInput.addEventListener("change", () => {
+    const file = tosInput.files?.[0];
+    if (!file) return;
+    revoke(tosUrl);
+    tosUrl = URL.createObjectURL(file);
+    tosName = file.name;
+    reboot();
+  });
+
+  diskInput.addEventListener("change", () => {
+    const file = diskInput.files?.[0];
+    if (!file) return;
+    revoke(diskUrl);
+    diskUrl = URL.createObjectURL(file);
+    diskName = file.name;
+    reboot();
+  });
+
+  runButton.addEventListener("click", focusEmulator);
+
+  pauseButton.addEventListener("click", () => {
+    isPaused = !isPaused;
+    pauseButton.textContent = isPaused ? "Resume" : "Pause";
+    try {
+      frame.contentWindow?.postMessage({ type: "tonyst-pause", paused: isPaused }, window.location.origin);
+    } catch (_) {}
+  });
+
+  resetButton.addEventListener("click", reboot);
+
+  fullscreenButton.addEventListener("click", async () => {
+    try {
+      await (frame.requestFullscreen?.() || frame.webkitRequestFullscreen?.());
+    } catch (_) {
+      try {
+        await document.documentElement.requestFullscreen?.();
+      } catch (_) {}
+    }
+  });
+
+  document.querySelectorAll("[data-key]").forEach((button) => {
+    const code = button.dataset.key;
+    const down = (e) => {
+      e.preventDefault();
+      sendKey(code, true);
+    };
+    const up = (e) => {
+      e.preventDefault();
+      sendKey(code, false);
+    };
+    button.addEventListener("pointerdown", down);
+    button.addEventListener("pointerup", up);
+    button.addEventListener("pointercancel", up);
+    button.addEventListener("pointerleave", up);
+  });
+})();
