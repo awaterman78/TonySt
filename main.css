@@ -460,3 +460,18 @@ h2 {
   .joystick { width: min(26vw, 150px); }
   .fire-button { width: min(22vw, 116px); }
 }
+
+.advanced-grid {
+  margin-top: 10px;
+}
+
+.notes p {
+  line-height: 1.35;
+}
+
+button.is-pressed,
+.fire-button.is-pressed {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(1.18);
+  box-shadow: inset 0 2px 12px rgba(0,0,0,0.35), 0 8px 22px var(--shadow);
+}

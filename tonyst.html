@@ -43,10 +43,10 @@
 
     const bootArgs = [
       "--desktop", "false",
-      "--machine", "ste",
+      "--machine", tosUrl ? "st" : "ste",
       "--statusbar", "false",
       "--memsize", "4",
-      "--cpuclock", "16",
+      "--cpuclock", tosUrl ? "8" : "16",
     ];
 
     if (!diskUrl) {
@@ -132,9 +132,10 @@
     };
 
     Module.setStatus("Downloading...");
-    window.onerror = (e) => {
-      Module.setStatus("Error: " + e);
-      createParentStatus("tonyst-error", "Engine, error", String(e));
+    window.onerror = (message, source, lineno, colno, error) => {
+      const detail = error?.message || message || "Unknown Hatari error";
+      Module.setStatus("Error: " + detail);
+      createParentStatus("tonyst-error", "Engine, error", String(detail));
     };
 
     window.addEventListener("message", (event) => {

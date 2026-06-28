@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>TonyST Web</title>
-  <link rel="stylesheet" href="main.css" />
+  <link rel="stylesheet" href="main.css?v=62" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
   <link rel="apple-touch-icon" href="icon-192.png" />
@@ -29,7 +29,7 @@
         <iframe
           id="emulatorFrame"
           class="emulator-frame"
-          src="tonyst.html"
+          src="tonyst.html?v=62"
           title="Hatari Atari ST emulator"
           allow="fullscreen"
         ></iframe>
@@ -78,16 +78,25 @@
 
         <div class="menu-grid">
           <button id="diskButton" type="button">Load game or disk</button>
-          <button id="tosButton" type="button">Load BIOS, TOS or EmuTOS</button>
+          <button id="cleanStartButton" type="button">Clean start</button>
           <button id="runButton" type="button">Focus screen</button>
           <button id="pauseButton" type="button">Pause</button>
-          <button id="resetButton" type="button">Reset</button>
+          <button id="resetButton" type="button">Reset current</button>
           <button id="fullscreenButton" type="button">Full screen</button>
         </div>
 
         <details class="notes">
+          <summary>Advanced BIOS / TOS</summary>
+          <div class="menu-grid advanced-grid">
+            <button id="tosButton" type="button">Load BIOS, TOS or EmuTOS</button>
+            <button id="clearTosButton" type="button">Clear BIOS / TOS</button>
+          </div>
+          <p>Most games do not need this. If loading a TOS file gives you a black screen, use Clean start and load the game disk only.</p>
+        </details>
+
+        <details class="notes">
           <summary>Quick help</summary>
-          <p>Use Load game or disk for .st, .msa, .stx, .dim, .ipf or .zip files. Use the BIOS button only for TOS or EmuTOS files. Tap Fire for Spacebar on trainer screens.</p>
+          <p>Use Load game or disk for .st, .msa, .stx, .dim, .ipf or .zip files. Tap Fire for Spacebar on trainer screens.</p>
         </details>
 
         <p class="credit">Uses the Mesmotronic browser Hatari build. Keep the original licence and credit files in the repo.</p>
@@ -168,6 +177,6 @@
     </div>
   </main>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=62"></script>
 </body>
 </html>

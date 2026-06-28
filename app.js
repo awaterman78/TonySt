@@ -1,4 +1,8 @@
 (() => {
+  const VERSION = "62";
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations?.().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => {});
+  }
   const frame = document.getElementById("emulatorFrame");
   const overlay = document.getElementById("loadingOverlay");
   const engineStatus = document.getElementById("engineStatus");
@@ -13,6 +17,8 @@
   const pauseButton = document.getElementById("pauseButton");
   const resetButton = document.getElementById("resetButton");
   const fullscreenButton = document.getElementById("fullscreenButton");
+  const cleanStartButton = document.getElementById("cleanStartButton");
+  const clearTosButton = document.getElementById("clearTosButton");
 
   const menuButton = document.getElementById("menuButton");
   const closeMenuButton = document.getElementById("closeMenuButton");
@@ -30,6 +36,9 @@
   let diskName = "";
   let isPaused = false;
   let joystickKeys = new Set();
+  let activeJoyTouchId = null;
+  const heldButtonKeys = new Set();
+  const isTouchDevice = ("ontouchstart" in window) || (navigator.maxTouchPoints || 0) > 0;
 
   const keyMap = {
     Space: { key: " ", code: "Space", keyCode: 32 },
@@ -68,20 +77,42 @@
     } else if (diskName) {
       fileLabel.textContent = diskName;
     } else if (tosName) {
-      fileLabel.textContent = tosName;
+      fileLabel.textContent = `${tosName}, waiting for disk`;
     } else {
-      fileLabel.textContent = "Built in demo disk";
+      fileLabel.textContent = "Built in boot";
     }
+  };
+
+  const clearTos = () => {
+    revoke(tosUrl);
+    tosUrl = "";
+    tosName = "";
+    tosInput.value = "";
+  };
+
+  const clearDisk = () => {
+    revoke(diskUrl);
+    diskUrl = "";
+    diskName = "";
+    diskInput.value = "";
+  };
+
+  const clearAllFiles = () => {
+    clearTos();
+    clearDisk();
+    isPaused = false;
+    if (pauseButton) pauseButton.textContent = "Pause";
   };
 
   const buildSrc = () => {
     const params = new URLSearchParams();
+    params.set("v", VERSION);
+    params.set("r", String(Date.now()));
     if (tosUrl) params.set("tos", tosUrl);
     if (diskUrl) params.set("disk", diskUrl);
     if (diskName) params.set("diskName", diskName);
     if (tosName) params.set("tosName", tosName);
-    const qs = params.toString();
-    return `tonyst.html${qs ? `?${qs}` : ""}`;
+    return `tonyst.html?${params.toString()}`;
   };
 
   const closeMenu = () => {
@@ -95,8 +126,9 @@
 
   const reboot = () => {
     releaseJoystick();
+    releaseHeldButtons();
     overlay.classList.remove("is-hidden");
-    status("Engine, starting", diskName ? "Booting selected disk" : "Starting Hatari WebAssembly");
+    status("Engine, starting", diskName ? "Booting selected disk" : (tosName ? "TOS saved, booting without disk" : "Starting Hatari WebAssembly"));
     setFileLabel();
     frame.src = buildSrc();
   };
@@ -139,10 +171,22 @@
     } catch (_) {}
   };
 
-  const tapKey = (code) => {
+  const holdButtonKey = (code) => {
+    if (heldButtonKeys.has(code)) return;
+    heldButtonKeys.add(code);
     sendKey(code, true);
-    window.setTimeout(() => sendKey(code, false), 70);
   };
+
+  const releaseButtonKey = (code) => {
+    if (!heldButtonKeys.has(code)) return;
+    heldButtonKeys.delete(code);
+    sendKey(code, false);
+  };
+
+  function releaseHeldButtons() {
+    Array.from(heldButtonKeys).forEach((code) => releaseButtonKey(code));
+    document.querySelectorAll(".is-pressed").forEach((button) => button.classList.remove("is-pressed"));
+  }
 
   const setJoystickKeys = (nextKeys) => {
     joystickKeys.forEach((code) => {
@@ -156,15 +200,16 @@
 
   function releaseJoystick() {
     setJoystickKeys(new Set());
+    activeJoyTouchId = null;
     if (stickThumb) stickThumb.style.transform = "translate(-50%, -50%)";
   }
 
-  const updateJoystick = (event) => {
+  const updateJoystickFromPoint = (clientX, clientY) => {
     const rect = joystick.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
-    const rawX = event.clientX - cx;
-    const rawY = event.clientY - cy;
+    const rawX = clientX - cx;
+    const rawY = clientY - cy;
     const max = rect.width * 0.28;
     const distance = Math.hypot(rawX, rawY);
     const scale = distance > max ? max / distance : 1;
@@ -182,9 +227,10 @@
     setJoystickKeys(next);
   };
 
+  const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
+
   frame.addEventListener("load", () => {
-    status("Engine, loaded", diskName ? "Selected disk sent to Hatari" : "Built in Hatari demo loaded");
-    setTimeout(() => overlay.classList.add("is-hidden"), 900);
+    status("Engine, loading", diskName ? "Selected disk sent to Hatari" : (tosName ? "Selected TOS sent to Hatari" : "Starting Hatari"));
     setTimeout(focusEmulator, 1000);
   });
 
@@ -223,13 +269,34 @@
     diskInput.click();
   });
 
+  cleanStartButton?.addEventListener("click", () => {
+    closeMenu();
+    clearAllFiles();
+    reboot();
+  });
+
+  clearTosButton?.addEventListener("click", () => {
+    closeMenu();
+    clearTos();
+    reboot();
+  });
+
   tosInput.addEventListener("change", () => {
     const file = tosInput.files?.[0];
     if (!file) return;
     revoke(tosUrl);
     tosUrl = URL.createObjectURL(file);
     tosName = file.name;
-    reboot();
+    setFileLabel();
+
+    // Do not black-screen the app by booting a bare TOS file on its own.
+    // Keep it ready for the next disk load instead. If a disk is already selected, reboot with both.
+    if (diskUrl) {
+      reboot();
+    } else {
+      overlay.classList.add("is-hidden");
+      status("TOS saved", "Now load a game disk, or use Clean start from Menu");
+    }
   });
 
   diskInput.addEventListener("change", () => {
@@ -270,42 +337,105 @@
     }
   });
 
-  joystick.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
-    keyboardPanel.hidden = true;
-    joystick.setPointerCapture?.(event.pointerId);
-    updateJoystick(event);
-  });
-  joystick.addEventListener("pointermove", (event) => {
-    if (!joystick.hasPointerCapture?.(event.pointerId)) return;
-    event.preventDefault();
-    updateJoystick(event);
-  });
-  ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
-    joystick.addEventListener(type, (event) => {
+  if (isTouchDevice) {
+    joystick.addEventListener("touchstart", (event) => {
       event.preventDefault();
-      releaseJoystick();
+      keyboardPanel.hidden = true;
+      if (activeJoyTouchId !== null || !event.changedTouches.length) return;
+      const touch = event.changedTouches[0];
+      activeJoyTouchId = touch.identifier;
+      updateJoystickFromPoint(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    joystick.addEventListener("touchmove", (event) => {
+      if (activeJoyTouchId === null) return;
+      const touch = findTouch(event.changedTouches, activeJoyTouchId) || findTouch(event.touches, activeJoyTouchId);
+      if (!touch) return;
+      event.preventDefault();
+      updateJoystickFromPoint(touch.clientX, touch.clientY);
+    }, { passive: false });
+
+    ["touchend", "touchcancel"].forEach((type) => {
+      joystick.addEventListener(type, (event) => {
+        if (activeJoyTouchId === null) return;
+        const touch = findTouch(event.changedTouches, activeJoyTouchId);
+        if (!touch) return;
+        event.preventDefault();
+        releaseJoystick();
+      }, { passive: false });
     });
-  });
+  } else {
+    joystick.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      keyboardPanel.hidden = true;
+      joystick.setPointerCapture?.(event.pointerId);
+      updateJoystickFromPoint(event.clientX, event.clientY);
+    });
+    joystick.addEventListener("pointermove", (event) => {
+      if (!joystick.hasPointerCapture?.(event.pointerId)) return;
+      event.preventDefault();
+      updateJoystickFromPoint(event.clientX, event.clientY);
+    });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
+      joystick.addEventListener(type, (event) => {
+        event.preventDefault();
+        releaseJoystick();
+      });
+    });
+  }
 
   document.querySelectorAll("[data-key]").forEach((button) => {
     const code = button.dataset.key;
-    const down = (event) => {
-      event.preventDefault();
-      keyboardPanel.hidden = button.id === "fireButton" ? true : keyboardPanel.hidden;
-      sendKey(code, true);
-    };
-    const up = (event) => {
-      event.preventDefault();
-      sendKey(code, false);
-    };
-    button.addEventListener("pointerdown", down);
-    button.addEventListener("pointerup", up);
-    button.addEventListener("pointercancel", up);
-    button.addEventListener("pointerleave", up);
+
+    if (isTouchDevice) {
+      const activeTouches = new Set();
+
+      button.addEventListener("touchstart", (event) => {
+        event.preventDefault();
+        if (button.id === "fireButton") keyboardPanel.hidden = true;
+        Array.from(event.changedTouches).forEach((touch) => activeTouches.add(touch.identifier));
+        button.classList.add("is-pressed");
+        holdButtonKey(code);
+      }, { passive: false });
+
+      const touchEnd = (event) => {
+        let changed = false;
+        Array.from(event.changedTouches).forEach((touch) => {
+          if (activeTouches.delete(touch.identifier)) changed = true;
+        });
+        if (!changed) return;
+        event.preventDefault();
+        if (activeTouches.size === 0) {
+          button.classList.remove("is-pressed");
+          releaseButtonKey(code);
+        }
+      };
+
+      button.addEventListener("touchend", touchEnd, { passive: false });
+      button.addEventListener("touchcancel", touchEnd, { passive: false });
+    } else {
+      const down = (event) => {
+        event.preventDefault();
+        if (button.id === "fireButton") keyboardPanel.hidden = true;
+        button.classList.add("is-pressed");
+        holdButtonKey(code);
+      };
+      const up = (event) => {
+        event.preventDefault();
+        button.classList.remove("is-pressed");
+        releaseButtonKey(code);
+      };
+      button.addEventListener("pointerdown", down);
+      button.addEventListener("pointerup", up);
+      button.addEventListener("pointercancel", up);
+      button.addEventListener("pointerleave", up);
+    }
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) releaseJoystick();
+    if (document.hidden) {
+      releaseJoystick();
+      releaseHeldButtons();
+    }
   });
 })();
