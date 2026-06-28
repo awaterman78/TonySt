@@ -48,7 +48,7 @@
     if (diskName) params.set("diskName", diskName);
     if (tosName) params.set("tosName", tosName);
     const qs = params.toString();
-    return `hatari/tonyst.html${qs ? `?${qs}` : ""}`;
+    return `engine/hatari/tonyst.html${qs ? `?${qs}` : ""}`;
   };
 
   const reboot = () => {
