@@ -3,6 +3,7 @@ const TonyST = (() => {
     tos: null,
     disk: null,
     engineReady: false,
+    engineLoading: false,
     module: null
   };
 
@@ -12,24 +13,24 @@ const TonyST = (() => {
   const fileStatus = document.getElementById('fileStatus');
 
   function setStatus(message) {
-    overlayStatus.textContent = message;
+    if (overlayStatus) overlayStatus.textContent = message;
     console.log(`[TonyST] ${message}`);
   }
 
   function setEngineStatus(message) {
-    engineStatus.textContent = message;
+    if (engineStatus) engineStatus.textContent = message;
   }
 
   function updateFileStatus() {
     const bits = [];
     if (state.tos) bits.push(`TOS: ${state.tos.name}`);
     if (state.disk) bits.push(`Disk: ${state.disk.name}`);
-    fileStatus.textContent = bits.length ? bits.join('  |  ') : 'No files loaded';
+    if (fileStatus) fileStatus.textContent = bits.length ? bits.join('  |  ') : 'No files loaded';
   }
 
   async function readFile(file) {
     return {
-      name: file.name,
+      name: file.name.replace(/[^a-zA-Z0-9._-]/g, '_'),
       bytes: new Uint8Array(await file.arrayBuffer())
     };
   }
@@ -39,7 +40,7 @@ const TonyST = (() => {
     if (!file) return;
     state.tos = await readFile(file);
     updateFileStatus();
-    setStatus(`Loaded ${state.tos.name}. Now load a disk image.`);
+    setStatus(`Loaded ${state.tos.name}. This v0.4 test build boots from the TOS inside hatari.data. Custom TOS boot wiring is next.`);
     pushFilesToHatariIfReady();
   }
 
@@ -48,8 +49,17 @@ const TonyST = (() => {
     if (!file) return;
     state.disk = await readFile(file);
     updateFileStatus();
-    setStatus(`Loaded ${state.disk.name}. Press Run when the engine is wired in.`);
+    setStatus(`Loaded ${state.disk.name}. I will copy it into Hatari's virtual drive if the engine is ready.`);
     pushFilesToHatariIfReady();
+  }
+
+  function mkdirp(FS, path) {
+    const parts = path.split('/').filter(Boolean);
+    let current = '';
+    for (const part of parts) {
+      current += '/' + part;
+      try { FS.mkdir(current); } catch (_) {}
+    }
   }
 
   function pushFilesToHatariIfReady() {
@@ -59,17 +69,17 @@ const TonyST = (() => {
 
     const FS = state.module.FS;
     try {
-      try { FS.mkdir('/tonyst'); } catch (_) {}
+      mkdirp(FS, '/share/hatari/fs/TONYST');
 
       if (state.tos) {
-        FS.writeFile(`/tonyst/${state.tos.name}`, state.tos.bytes);
+        FS.writeFile(`/share/hatari/fs/TONYST/${state.tos.name}`, state.tos.bytes);
       }
 
       if (state.disk) {
-        FS.writeFile(`/tonyst/${state.disk.name}`, state.disk.bytes);
+        FS.writeFile(`/share/hatari/fs/TONYST/${state.disk.name}`, state.disk.bytes);
       }
 
-      setStatus('Files copied into Hatari virtual file system.' );
+      setStatus('Files copied into Hatari virtual drive under TONYST. Full floppy mounting is the next boss fight.');
     } catch (error) {
       setStatus(`Could not copy files into Hatari: ${error.message}`);
     }
@@ -79,51 +89,110 @@ const TonyST = (() => {
     state.module = module;
     state.engineReady = true;
     setEngineStatus('Engine, ready');
-    setStatus('Hatari WebAssembly module attached. Load files, then run.');
+    setStatus('Hatari engine loaded. If the screen is blank for a few seconds, give it a moment, it is very 1985.');
     pushFilesToHatariIfReady();
+  }
+
+  function loadHatariEngine() {
+    if (state.engineLoading || state.engineReady) return;
+    state.engineLoading = true;
+    setEngineStatus('Engine, loading');
+    setStatus('Loading engine/hatari/hatari.js...');
+
+    const args = [
+      '--desktop', 'false',
+      '--machine', 'megaste',
+      '--statusbar', 'false',
+      '--memsize', '4',
+      '--cpuclock', '16'
+    ];
+
+    window.Module = {
+      preRun: [],
+      postRun: [],
+      canvas: screen,
+      totalDependencies: 0,
+      print: text => console.log('[Hatari]', text),
+      printErr: text => console.error('[Hatari]', text),
+      locateFile: path => `engine/hatari/${path}`,
+      setStatus: text => {
+        console.log('[Hatari]', text);
+        if (text) setStatus(text);
+      },
+      monitorRunDependencies: function (remaining) {
+        this.totalDependencies = Math.max(this.totalDependencies, remaining);
+        if (remaining) {
+          setEngineStatus('Engine, preparing');
+          setStatus(`Preparing Hatari... (${this.totalDependencies - remaining}/${this.totalDependencies})`);
+        } else {
+          setEngineStatus('Engine, starting');
+          setStatus('All Hatari downloads complete. Starting...');
+        }
+      },
+      onRuntimeInitialized: () => {
+        attachHatariModule(window.Module);
+      },
+      get arguments() {
+        return args;
+      },
+      set arguments(value) {
+        for (let i = 0; i < value.length; i += 2) {
+          if (args.indexOf(value[i]) === -1) {
+            args.push(value[i], value[i + 1]);
+          }
+        }
+        console.log('[Hatari args]', args);
+      }
+    };
+
+    window.onerror = message => {
+      setEngineStatus('Engine, error');
+      setStatus(`Error: ${message}`);
+    };
+
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'engine/hatari/hatari.js?v=0.4';
+    script.onload = () => setStatus('Hatari script loaded. Waiting for WebAssembly runtime...');
+    script.onerror = () => {
+      setEngineStatus('Engine, missing');
+      setStatus('Could not load engine/hatari/hatari.js. Check the file path on GitHub Pages.');
+    };
+    document.body.appendChild(script);
   }
 
   function run() {
     if (!state.engineReady) {
-      setStatus('Run requested, but Hatari is not loaded yet. Add engine/hatari/hatari.js and wire attachHatariModule.');
-      drawPlaceholder('TonyST Web', 'Hatari engine required');
+      setStatus('Engine is still loading. Wait a few seconds, then refresh once if it sticks.');
       return;
     }
 
-    setStatus('Run sent to Hatari. Add the exported Hatari start call in app.js.' );
+    setStatus('Hatari should already be running. The Run button is now just a status check.');
+    if (screen) screen.focus();
   }
 
   function pause() {
-    if (!state.engineReady) {
-      setStatus('Pause requested, but Hatari is not loaded yet.' );
-      return;
-    }
-
-    setStatus('Pause sent to Hatari. Add the exported Hatari pause call in app.js.' );
+    setStatus('Pause is not wired yet. Engine loading is the current win.');
   }
 
   function reset() {
-    if (!state.engineReady) {
-      setStatus('Reset requested, but Hatari is not loaded yet.' );
-      return;
-    }
-
-    setStatus('Reset sent to Hatari. Add the exported Hatari reset call in app.js.' );
+    setStatus('Reset is not wired yet. Refresh the page to restart this v0.4 test build.');
   }
 
   function drawPlaceholder(title, subtitle) {
+    if (!screen) return;
     const ctx = screen.getContext('2d');
     ctx.clearRect(0, 0, screen.width, screen.height);
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, screen.width, screen.height);
     ctx.fillStyle = '#f5f7fb';
-    ctx.font = 'bold 34px system-ui, sans-serif';
-    ctx.fillText(title, 38, 86);
+    ctx.font = 'bold 44px system-ui, sans-serif';
+    ctx.fillText(title, 48, 100);
     ctx.fillStyle = '#9ca3af';
+    ctx.font = '28px system-ui, sans-serif';
+    ctx.fillText(subtitle, 48, 146);
     ctx.font = '22px system-ui, sans-serif';
-    ctx.fillText(subtitle, 38, 124);
-    ctx.font = '18px system-ui, sans-serif';
-    ctx.fillText('Load TOS or EmuTOS, load disk, add Hatari WASM engine.', 38, 176);
+    ctx.fillText('Loading engine/hatari/hatari.js, hatari.wasm and hatari.data.', 48, 208);
   }
 
   function keyboardEvent(key, type) {
@@ -141,8 +210,9 @@ const TonyST = (() => {
       const key = button.getAttribute('data-key');
       button.addEventListener('pointerdown', event => {
         event.preventDefault();
-        button.setPointerCapture(event.pointerId);
+        try { button.setPointerCapture(event.pointerId); } catch (_) {}
         keyboardEvent(key, 'keydown');
+        if (screen) screen.focus();
       });
       button.addEventListener('pointerup', event => {
         event.preventDefault();
@@ -169,18 +239,22 @@ const TonyST = (() => {
 
   function boot() {
     wireControls();
-    drawPlaceholder('TonyST Web', 'Ready for Hatari WebAssembly');
-    setEngineStatus('Engine, waiting');
+    drawPlaceholder('TonyST Web', 'Loading Hatari WebAssembly');
+    setEngineStatus('Engine, loading');
     updateFileStatus();
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js?v=0.4').catch(() => {});
     }
+
+    loadHatariEngine();
   }
 
   return {
     boot,
     attachHatariModule,
+    loadHatariEngine,
+    pushFilesToHatariIfReady,
     run,
     pause,
     reset,

@@ -10,7 +10,7 @@
   <title>TonyST Web</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=0.4">
 </head>
 <body>
   <header class="topbar">
@@ -24,11 +24,11 @@
   <main class="layout">
     <section class="screen-card" aria-label="Emulator display">
       <div class="screen-bezel">
-        <canvas id="screen" width="640" height="400"></canvas>
-        <div id="overlayStatus" class="overlay-status">Hatari WebAssembly engine not loaded yet.</div>
+        <canvas id="screen" width="832" height="588" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+        <div id="overlayStatus" class="overlay-status">Loading Hatari WebAssembly engine...</div>
       </div>
       <div class="status-row">
-        <span id="engineStatus">Engine, waiting</span>
+        <span id="engineStatus">Engine, loading</span>
         <span id="fileStatus">No files loaded</span>
       </div>
     </section>
@@ -65,12 +65,11 @@
 
       <details>
         <summary>What works today?</summary>
-        <p>This is the web app shell. It installs to the iPhone home screen, handles file import and gives us the UI. To actually run Atari ST software, add the compiled Hatari WebAssembly output into engine/hatari, then wire its exported functions in app.js.</p>
+        <p>v0.4 loads the Hatari WebAssembly engine from engine/hatari/hatari.js, hatari.wasm and hatari.data. The engine should boot using the files inside hatari.data. Loading your own disk images into a running Hatari session is the next stage.</p>
       </details>
     </section>
   </main>
 
-  <script src="app.js"></script>
-  <!-- Add compiled Hatari files later. Example: <script src="engine/hatari/hatari.js"></script> -->
+  <script src="app.js?v=0.4"></script>
 </body>
 </html>
