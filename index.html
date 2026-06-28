@@ -29,7 +29,7 @@
         <iframe
           id="emulatorFrame"
           class="emulator-frame"
-          src="hatari/tonyst.html"
+          src="tonyst.html"
           title="Hatari Atari ST emulator"
           allow="fullscreen"
         ></iframe>
@@ -45,11 +45,11 @@
     </section>
 
     <section class="controls-card" aria-label="TonyST controls">
-      <input id="tosInput" class="hidden-input" type="file" accept=".img,.rom,.tos" />
-      <input id="diskInput" class="hidden-input" type="file" accept=".st,.msa,.stx,.dim,.ipf,.zip,.img" />
+      <input id="tosInput" class="hidden-input" type="file" />
+      <input id="diskInput" class="hidden-input" type="file" />
 
-      <button class="wide-button" id="tosButton" type="button">Load TOS or EmuTOS</button>
-      <button class="wide-button" id="diskButton" type="button">Load disk</button>
+      <button class="wide-button" id="tosButton" type="button">Load BIOS, TOS or EmuTOS</button>
+      <button class="wide-button" id="diskButton" type="button">Load game or disk file</button>
 
       <div class="button-row">
         <button id="runButton" type="button">Run</button>
@@ -69,7 +69,7 @@
 
       <details class="notes">
         <summary>What works today?</summary>
-        <p>This version removes the 3D room and uses the working Hatari iframe directly. The built in demo boots from the existing Hatari files. Disk and TOS import is experimental and depends on the Hatari WebAssembly build accepting local files at boot.</p>
+        <p>This version removes the 3D room and uses the working Hatari iframe directly. The built in demo boots from the existing Hatari files. The file picker now allows all files because iPhone can hide or grey out Atari files when a strict extension filter is used. Disk and TOS import is still experimental and depends on the Hatari WebAssembly build accepting local files at boot.</p>
       </details>
     </section>
 
