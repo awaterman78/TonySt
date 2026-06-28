@@ -12,19 +12,19 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#111118" />
+  <meta name="theme-color" content="#101018" />
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div>
+      <div class="brand">
         <p class="kicker">Atari ST on iPhone</p>
-        <h1>TonyST Web</h1>
+        <h1>TonyST</h1>
       </div>
-      <button class="top-button" id="fullscreenButton" type="button">Full screen</button>
+      <button class="menu-button" id="menuButton" type="button" aria-label="Open menu">☰ Menu</button>
     </header>
 
-    <section class="screen-card" aria-label="Atari ST emulator screen">
+    <section class="screen-area" aria-label="Atari ST emulator screen">
       <div class="screen-wrap">
         <iframe
           id="emulatorFrame"
@@ -34,48 +34,138 @@
           allow="fullscreen"
         ></iframe>
         <div id="loadingOverlay" class="loading-overlay">
-          <strong>TonyST Web</strong>
+          <strong>TonyST</strong>
           <span id="engineStatus">Starting Hatari WebAssembly</span>
         </div>
-      </div>
-      <div class="status-row">
-        <span id="engineLabel">Engine, starting</span>
-        <span id="fileLabel">Built in demo disk</span>
-      </div>
-    </section>
-
-    <section class="controls-card" aria-label="TonyST controls">
-      <input id="tosInput" class="hidden-input" type="file" />
-      <input id="diskInput" class="hidden-input" type="file" />
-
-      <button class="wide-button" id="tosButton" type="button">Load BIOS, TOS or EmuTOS</button>
-      <button class="wide-button" id="diskButton" type="button">Load game or disk file</button>
-
-      <div class="button-row">
-        <button id="runButton" type="button">Run</button>
-        <button id="pauseButton" type="button">Pause</button>
-        <button id="resetButton" type="button">Reset</button>
-      </div>
-
-      <div class="touch-zone">
-        <div class="dpad" aria-label="Directional pad">
-          <button class="pad up" data-key="ArrowUp" type="button" aria-label="Up">▲</button>
-          <button class="pad left" data-key="ArrowLeft" type="button" aria-label="Left">◀</button>
-          <button class="pad down" data-key="ArrowDown" type="button" aria-label="Down">▼</button>
-          <button class="pad right" data-key="ArrowRight" type="button" aria-label="Right">▶</button>
+        <div class="screen-status" aria-live="polite">
+          <span id="engineLabel">Engine, starting</span>
+          <span id="fileLabel">Built in demo disk</span>
         </div>
-        <button class="fire" id="fireButton" data-key="Space" type="button">Fire</button>
       </div>
-
-      <details class="notes">
-        <summary>What works today?</summary>
-        <p>This version removes the 3D room and uses the working Hatari iframe directly. The built in demo boots from the existing Hatari files. The file picker now allows all files because iPhone can hide or grey out Atari files when a strict extension filter is used. Disk and TOS import is still experimental and depends on the Hatari WebAssembly build accepting local files at boot.</p>
-      </details>
     </section>
 
-    <footer class="credit">
-      Uses the Mesmotronic browser Hatari build. Keep the original licence and credit files in the repo.
-    </footer>
+    <section class="play-controls" aria-label="Game controls">
+      <div class="joystick-wrap">
+        <div class="joystick-label">Joystick</div>
+        <div class="joystick" id="joystick" role="application" aria-label="Virtual joystick">
+          <div class="stick-cross horizontal"></div>
+          <div class="stick-cross vertical"></div>
+          <div class="stick-thumb" id="stickThumb"></div>
+        </div>
+      </div>
+
+      <div class="action-wrap">
+        <button class="fire-button" id="fireButton" data-key="Space" type="button">
+          Fire
+          <span>Space</span>
+        </button>
+        <button class="keyboard-toggle" id="keyboardButton" type="button">⌨ Keyboard</button>
+      </div>
+    </section>
+
+    <input id="tosInput" class="hidden-input" type="file" />
+    <input id="diskInput" class="hidden-input" type="file" />
+
+    <div class="drawer-backdrop" id="menuBackdrop" hidden>
+      <aside class="drawer" id="menuDrawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+        <div class="drawer-head">
+          <div>
+            <p class="kicker">TonyST</p>
+            <h2 id="menuTitle">Menu</h2>
+          </div>
+          <button class="small-button" id="closeMenuButton" type="button">Close</button>
+        </div>
+
+        <div class="menu-grid">
+          <button id="diskButton" type="button">Load game or disk</button>
+          <button id="tosButton" type="button">Load BIOS, TOS or EmuTOS</button>
+          <button id="runButton" type="button">Focus screen</button>
+          <button id="pauseButton" type="button">Pause</button>
+          <button id="resetButton" type="button">Reset</button>
+          <button id="fullscreenButton" type="button">Full screen</button>
+        </div>
+
+        <details class="notes">
+          <summary>Quick help</summary>
+          <p>Use Load game or disk for .st, .msa, .stx, .dim, .ipf or .zip files. Use the BIOS button only for TOS or EmuTOS files. Tap Fire for Spacebar on trainer screens.</p>
+        </details>
+
+        <p class="credit">Uses the Mesmotronic browser Hatari build. Keep the original licence and credit files in the repo.</p>
+      </aside>
+    </div>
+
+    <div class="keyboard-panel" id="keyboardPanel" hidden>
+      <div class="keyboard-head">
+        <strong>Keyboard</strong>
+        <button class="small-button" id="closeKeyboardButton" type="button">Close</button>
+      </div>
+      <div class="key-row">
+        <button data-key="Escape" type="button">Esc</button>
+        <button data-key="F1" type="button">F1</button>
+        <button data-key="F2" type="button">F2</button>
+        <button data-key="F3" type="button">F3</button>
+        <button data-key="F4" type="button">F4</button>
+        <button data-key="F5" type="button">F5</button>
+        <button data-key="F6" type="button">F6</button>
+        <button data-key="F7" type="button">F7</button>
+        <button data-key="F8" type="button">F8</button>
+        <button data-key="F9" type="button">F9</button>
+        <button data-key="F10" type="button">F10</button>
+      </div>
+      <div class="key-row">
+        <button data-key="Digit1" type="button">1</button>
+        <button data-key="Digit2" type="button">2</button>
+        <button data-key="Digit3" type="button">3</button>
+        <button data-key="Digit4" type="button">4</button>
+        <button data-key="Digit5" type="button">5</button>
+        <button data-key="Digit6" type="button">6</button>
+        <button data-key="Digit7" type="button">7</button>
+        <button data-key="Digit8" type="button">8</button>
+        <button data-key="Digit9" type="button">9</button>
+        <button data-key="Digit0" type="button">0</button>
+      </div>
+      <div class="key-row">
+        <button data-key="KeyQ" type="button">Q</button>
+        <button data-key="KeyW" type="button">W</button>
+        <button data-key="KeyE" type="button">E</button>
+        <button data-key="KeyR" type="button">R</button>
+        <button data-key="KeyT" type="button">T</button>
+        <button data-key="KeyY" type="button">Y</button>
+        <button data-key="KeyU" type="button">U</button>
+        <button data-key="KeyI" type="button">I</button>
+        <button data-key="KeyO" type="button">O</button>
+        <button data-key="KeyP" type="button">P</button>
+      </div>
+      <div class="key-row">
+        <button data-key="KeyA" type="button">A</button>
+        <button data-key="KeyS" type="button">S</button>
+        <button data-key="KeyD" type="button">D</button>
+        <button data-key="KeyF" type="button">F</button>
+        <button data-key="KeyG" type="button">G</button>
+        <button data-key="KeyH" type="button">H</button>
+        <button data-key="KeyJ" type="button">J</button>
+        <button data-key="KeyK" type="button">K</button>
+        <button data-key="KeyL" type="button">L</button>
+        <button class="key-wide" data-key="Enter" type="button">Enter</button>
+      </div>
+      <div class="key-row">
+        <button data-key="KeyZ" type="button">Z</button>
+        <button data-key="KeyX" type="button">X</button>
+        <button data-key="KeyC" type="button">C</button>
+        <button data-key="KeyV" type="button">V</button>
+        <button data-key="KeyB" type="button">B</button>
+        <button data-key="KeyN" type="button">N</button>
+        <button data-key="KeyM" type="button">M</button>
+        <button class="key-wide" data-key="Backspace" type="button">Back</button>
+      </div>
+      <div class="key-row key-row-main">
+        <button data-key="ArrowLeft" type="button">←</button>
+        <button data-key="ArrowUp" type="button">↑</button>
+        <button data-key="ArrowDown" type="button">↓</button>
+        <button data-key="ArrowRight" type="button">→</button>
+        <button class="key-space" data-key="Space" type="button">Space</button>
+      </div>
+    </div>
   </main>
 
   <script src="app.js"></script>
