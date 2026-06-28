@@ -1,7 +1,6 @@
 (() => {
-  const VERSION = "64";
+  const VERSION = "65";
 
-  // GitHub Pages and Safari can hang on old service worker caches while testing.
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations?.().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => {});
   }
@@ -33,7 +32,7 @@
   const joystick = document.getElementById("joystick");
   const stickThumb = document.getElementById("stickThumb");
 
-  let diskFile = null;
+  let diskUrl = "";
   let diskName = "";
   let isPaused = false;
   let joystickKeys = new Set();
@@ -53,133 +52,41 @@
     ArrowRight: { key: "ArrowRight", code: "ArrowRight", keyCode: 39 },
   };
 
-  for (let i = 1; i <= 10; i += 1) {
-    keyMap[`F${i}`] = { key: `F${i}`, code: `F${i}`, keyCode: 111 + i };
-  }
-  for (let i = 0; i <= 9; i += 1) {
-    keyMap[`Digit${i}`] = { key: String(i), code: `Digit${i}`, keyCode: 48 + i };
-  }
+  for (let i = 1; i <= 10; i += 1) keyMap[`F${i}`] = { key: `F${i}`, code: `F${i}`, keyCode: 111 + i };
+  for (let i = 0; i <= 9; i += 1) keyMap[`Digit${i}`] = { key: String(i), code: `Digit${i}`, keyCode: 48 + i };
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach((letter) => {
     keyMap[`Key${letter}`] = { key: letter.toLowerCase(), code: `Key${letter}`, keyCode: letter.charCodeAt(0) };
   });
 
+  const revoke = (url) => {
+    if (url) URL.revokeObjectURL(url);
+  };
+
   const status = (label, detail) => {
-    engineLabel.textContent = label;
-    if (detail) engineStatus.textContent = detail;
+    if (engineLabel) engineLabel.textContent = label;
+    if (detail && engineStatus) engineStatus.textContent = detail;
   };
 
   const setFileLabel = () => {
-    fileLabel.textContent = diskName || "Built in boot";
-  };
-
-  const clearAllFiles = () => {
-    diskFile = null;
-    diskName = "";
-    diskInput.value = "";
-    if (tosInput) tosInput.value = "";
-    isPaused = false;
-    if (pauseButton) pauseButton.textContent = "Pause";
-    setFileLabel();
+    if (fileLabel) fileLabel.textContent = diskName || "Built in boot";
   };
 
   const buildSrc = () => {
     const params = new URLSearchParams();
     params.set("v", VERSION);
-    params.set("r", String(Date.now()));
-
-    // v0.6.4 deliberately does NOT use blob URLs for disk files.
-    // iPhone Safari can be awkward fetching a parent-created blob from inside an iframe.
-    // Instead the iframe asks the parent for the ArrayBuffer by postMessage.
-    if (diskFile) {
-      params.set("hasDisk", "1");
-      params.set("diskName", diskName || diskFile.name || "disk.st");
-    }
-
-    return `tonyst.html?${params.toString()}`;
+    if (diskUrl) params.set("disk", diskUrl);
+    if (diskName) params.set("diskName", diskName);
+    const qs = params.toString();
+    return `tonyst.html${qs ? `?${qs}` : ""}`;
   };
 
   const closeMenu = () => {
-    menuBackdrop.hidden = true;
+    if (menuBackdrop) menuBackdrop.hidden = true;
   };
 
   const openMenu = () => {
-    keyboardPanel.hidden = true;
-    menuBackdrop.hidden = false;
-  };
-
-  const reboot = () => {
-    releaseJoystick();
-    releaseHeldButtons();
-    overlay.classList.remove("is-hidden");
-    status("Engine, starting", diskName ? "Booting selected disk" : "Starting Hatari WebAssembly");
-    setFileLabel();
-    frame.src = buildSrc();
-  };
-
-  const focusEmulator = () => {
-    try {
-      frame.focus();
-      const win = frame.contentWindow;
-      const canvas = win?.document?.getElementById("canvas");
-      canvas?.focus();
-    } catch (_) {}
-  };
-
-  async function sendDiskToFrame() {
-    if (!diskFile || !frame.contentWindow) return;
-    try {
-      status("Engine, loading", `Sending ${diskName || diskFile.name} to Hatari`);
-      const buffer = await diskFile.arrayBuffer();
-      frame.contentWindow.postMessage({
-        type: "tonyst-file-data",
-        diskName: diskName || diskFile.name || "disk.st",
-        diskBuffer: buffer,
-      }, window.location.origin, [buffer]);
-    } catch (err) {
-      status("Engine, error", `Could not send disk: ${err?.message || err}`);
-      overlay.classList.remove("is-hidden");
-    }
-  }
-
-  const getKeyInfo = (code) => keyMap[code] || { key: code, code, keyCode: 0 };
-
-  const dispatchKeyboard = (target, type, info) => {
-    const event = new KeyboardEvent(type, {
-      key: info.key,
-      code: info.code,
-      keyCode: info.keyCode,
-      which: info.keyCode,
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-    });
-    target?.dispatchEvent(event);
-  };
-
-  const sendKey = (code, down) => {
-    focusEmulator();
-    const info = getKeyInfo(code);
-    const type = down ? "keydown" : "keyup";
-    try {
-      const win = frame.contentWindow;
-      const doc = win?.document;
-      const canvas = doc?.getElementById("canvas");
-      dispatchKeyboard(canvas, type, info);
-      dispatchKeyboard(doc, type, info);
-      dispatchKeyboard(win, type, info);
-    } catch (_) {}
-  };
-
-  const holdButtonKey = (code) => {
-    if (heldButtonKeys.has(code)) return;
-    heldButtonKeys.add(code);
-    sendKey(code, true);
-  };
-
-  const releaseButtonKey = (code) => {
-    if (!heldButtonKeys.has(code)) return;
-    heldButtonKeys.delete(code);
-    sendKey(code, false);
+    if (keyboardPanel) keyboardPanel.hidden = true;
+    if (menuBackdrop) menuBackdrop.hidden = false;
   };
 
   function releaseHeldButtons() {
@@ -203,7 +110,87 @@
     if (stickThumb) stickThumb.style.transform = "translate(-50%, -50%)";
   }
 
+  const reboot = () => {
+    releaseJoystick();
+    releaseHeldButtons();
+    if (overlay) overlay.classList.remove("is-hidden");
+    status("Engine, starting", diskName ? "Booting selected game" : "Starting Hatari WebAssembly");
+    setFileLabel();
+    if (frame) frame.src = buildSrc();
+
+    // Fallback, because the emulator can be loaded even if Safari swallows a status message.
+    window.clearTimeout(reboot._fallback);
+    reboot._fallback = window.setTimeout(() => {
+      if (overlay) overlay.classList.add("is-hidden");
+      status("Engine, loaded", diskName ? "Game sent to Hatari" : "Hatari ready");
+      focusEmulator();
+    }, diskName ? 5000 : 3500);
+  };
+
+  const cleanStart = () => {
+    revoke(diskUrl);
+    diskUrl = "";
+    diskName = "";
+    if (diskInput) diskInput.value = "";
+    if (tosInput) tosInput.value = "";
+    isPaused = false;
+    if (pauseButton) pauseButton.textContent = "Pause";
+    reboot();
+  };
+
+  const focusEmulator = () => {
+    try {
+      frame?.focus();
+      const win = frame?.contentWindow;
+      const canvas = win?.document?.getElementById("canvas");
+      canvas?.focus();
+    } catch (_) {}
+  };
+
+  const getKeyInfo = (code) => keyMap[code] || { key: code, code, keyCode: 0 };
+
+  const dispatchKeyboard = (target, type, info) => {
+    if (!target) return;
+    const event = new KeyboardEvent(type, {
+      key: info.key,
+      code: info.code,
+      keyCode: info.keyCode,
+      which: info.keyCode,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+    });
+    target.dispatchEvent(event);
+  };
+
+  function sendKey(code, down) {
+    focusEmulator();
+    const info = getKeyInfo(code);
+    const type = down ? "keydown" : "keyup";
+    try {
+      const win = frame?.contentWindow;
+      const doc = win?.document;
+      const canvas = doc?.getElementById("canvas");
+      dispatchKeyboard(canvas, type, info);
+      dispatchKeyboard(doc, type, info);
+      dispatchKeyboard(win, type, info);
+    } catch (_) {}
+  }
+
+  function holdButtonKey(code) {
+    if (heldButtonKeys.has(code)) return;
+    heldButtonKeys.add(code);
+    sendKey(code, true);
+  }
+
+  function releaseButtonKey(code) {
+    if (!heldButtonKeys.has(code)) return;
+    heldButtonKeys.delete(code);
+    sendKey(code, false);
+  }
+
   const updateJoystickFromPoint = (clientX, clientY) => {
+    if (!joystick || !stickThumb) return;
     const rect = joystick.getBoundingClientRect();
     const cx = rect.left + rect.width / 2;
     const cy = rect.top + rect.height / 2;
@@ -228,85 +215,75 @@
 
   const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
 
-  frame.addEventListener("load", () => {
-    status("Engine, loading", diskName ? "Waiting for Hatari to request the disk" : "Starting Hatari");
-    setTimeout(focusEmulator, 1000);
+  frame?.addEventListener("load", () => {
+    status("Engine, loading", diskName ? "Selected game sent to Hatari" : "Starting Hatari");
+    setTimeout(focusEmulator, 800);
   });
 
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) return;
 
-    if (event.data?.type === "tonyst-ready-for-files") {
-      if (event.data.wantsDisk) sendDiskToFrame();
-    }
-
     if (event.data?.type === "tonyst-status") {
       status(event.data.label || "Engine, loaded", event.data.detail || "Hatari ready");
-      if (event.data.hideOverlay) overlay.classList.add("is-hidden");
+      if (event.data.hideOverlay && overlay) overlay.classList.add("is-hidden");
     }
 
     if (event.data?.type === "tonyst-error") {
-      status("Engine, error", event.data.detail || "Hatari error");
-      overlay.classList.remove("is-hidden");
+      status(event.data.label || "Engine, error", event.data.detail || "Hatari error");
+      // Show the emulator anyway where possible, instead of blocking the screen forever.
+      setTimeout(() => overlay?.classList.add("is-hidden"), 1200);
     }
   });
 
-  menuButton.addEventListener("click", openMenu);
-  closeMenuButton.addEventListener("click", closeMenu);
-  menuBackdrop.addEventListener("click", (event) => {
+  menuButton?.addEventListener("click", openMenu);
+  closeMenuButton?.addEventListener("click", closeMenu);
+  menuBackdrop?.addEventListener("click", (event) => {
     if (event.target === menuBackdrop) closeMenu();
   });
 
-  keyboardButton.addEventListener("click", () => {
+  keyboardButton?.addEventListener("click", () => {
     closeMenu();
-    keyboardPanel.hidden = !keyboardPanel.hidden;
+    if (keyboardPanel) keyboardPanel.hidden = !keyboardPanel.hidden;
   });
-  closeKeyboardButton.addEventListener("click", () => {
-    keyboardPanel.hidden = true;
+  closeKeyboardButton?.addEventListener("click", () => {
+    if (keyboardPanel) keyboardPanel.hidden = true;
   });
 
+  // TOS is intentionally disabled in this stable build.
   tosButton?.addEventListener("click", () => {
     closeMenu();
-    status("BIOS/TOS paused", "Use Load game or disk only for this build");
-    overlay.classList.add("is-hidden");
+    status("TOS disabled", "Use Load game or disk for now");
+  });
+  clearTosButton?.addEventListener("click", () => {
+    closeMenu();
+    cleanStart();
   });
 
-  diskButton.addEventListener("click", () => {
+  diskButton?.addEventListener("click", () => {
     closeMenu();
-    diskInput.click();
+    diskInput?.click();
   });
 
   cleanStartButton?.addEventListener("click", () => {
     closeMenu();
-    clearAllFiles();
-    reboot();
+    cleanStart();
   });
 
-  clearTosButton?.addEventListener("click", () => {
-    closeMenu();
-    clearAllFiles();
-    reboot();
-  });
-
-  tosInput?.addEventListener("change", () => {
-    tosInput.value = "";
-    status("BIOS/TOS paused", "Use Load game or disk only for this build");
-  });
-
-  diskInput.addEventListener("change", () => {
+  diskInput?.addEventListener("change", () => {
     const file = diskInput.files?.[0];
     if (!file) return;
-    diskFile = file;
+    revoke(diskUrl);
+    diskUrl = URL.createObjectURL(file);
     diskName = file.name;
     reboot();
   });
 
-  runButton.addEventListener("click", () => {
+  runButton?.addEventListener("click", () => {
     closeMenu();
     focusEmulator();
   });
 
-  pauseButton.addEventListener("click", () => {
+  pauseButton?.addEventListener("click", () => {
     isPaused = !isPaused;
     pauseButton.textContent = isPaused ? "Resume" : "Pause";
     try {
@@ -314,27 +291,25 @@
     } catch (_) {}
   });
 
-  resetButton.addEventListener("click", () => {
+  resetButton?.addEventListener("click", () => {
     closeMenu();
     reboot();
   });
 
-  fullscreenButton.addEventListener("click", async () => {
+  fullscreenButton?.addEventListener("click", async () => {
     closeMenu();
     try {
       await (frame.requestFullscreen?.() || frame.webkitRequestFullscreen?.());
     } catch (_) {
-      try {
-        await document.documentElement.requestFullscreen?.();
-      } catch (_) {}
+      try { await document.documentElement.requestFullscreen?.(); } catch (_) {}
     }
   });
 
-  if (isTouchDevice) {
+  if (isTouchDevice && joystick) {
     joystick.addEventListener("touchstart", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      keyboardPanel.hidden = true;
+      if (keyboardPanel) keyboardPanel.hidden = true;
       if (activeJoyTouchId !== null || !event.changedTouches.length) return;
       const touch = event.changedTouches[0];
       activeJoyTouchId = touch.identifier;
@@ -360,11 +335,11 @@
         releaseJoystick();
       }, { passive: false });
     });
-  } else {
+  } else if (joystick) {
     joystick.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       event.stopPropagation();
-      keyboardPanel.hidden = true;
+      if (keyboardPanel) keyboardPanel.hidden = true;
       joystick.setPointerCapture?.(event.pointerId);
       updateJoystickFromPoint(event.clientX, event.clientY);
     });
@@ -391,7 +366,7 @@
       button.addEventListener("touchstart", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        if (button.id === "fireButton") keyboardPanel.hidden = true;
+        if (button.id === "fireButton" && keyboardPanel) keyboardPanel.hidden = true;
         Array.from(event.changedTouches).forEach((touch) => activeTouches.add(touch.identifier));
         button.classList.add("is-pressed");
         holdButtonKey(code);
@@ -417,7 +392,7 @@
       const down = (event) => {
         event.preventDefault();
         event.stopPropagation();
-        if (button.id === "fireButton") keyboardPanel.hidden = true;
+        if (button.id === "fireButton" && keyboardPanel) keyboardPanel.hidden = true;
         button.classList.add("is-pressed");
         holdButtonKey(code);
       };

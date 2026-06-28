@@ -31,19 +31,15 @@
   <script>
     const canvas = document.getElementById("canvas");
     const params = new URLSearchParams(window.location.search);
-    const wantsDisk = params.get("hasDisk") === "1";
+    const diskUrl = params.get("disk");
+    const tosUrl = params.get("tos");
     const diskName = params.get("diskName") || "disk.st";
-
-    let pendingDiskBuffer = null;
-    let pendingDiskName = diskName;
-    let diskDependencyReleased = false;
+    const tosName = params.get("tosName") || "tos.img";
 
     const safeName = (name, fallback) => {
       const cleaned = String(name || fallback).replace(/[^a-zA-Z0-9._-]/g, "_");
       return cleaned || fallback;
     };
-
-    const diskPath = `/tonyst/${safeName(diskName, "disk.st")}`;
 
     const bootArgs = [
       "--desktop", "false",
@@ -53,9 +49,7 @@
       "--cpuclock", "16",
     ];
 
-    if (wantsDisk) {
-      bootArgs.push("--disk-a", diskPath);
-    } else {
+    if (!diskUrl) {
       bootArgs.push("-d", "/share/hatari/fs/");
     }
 
@@ -65,73 +59,48 @@
       } catch (_) {}
     };
 
-    const requestFilesFromParent = () => {
+    async function addLocalFile(url, path, label) {
+      Module.addRunDependency(`tonyst ${label}`);
       try {
-        parent.postMessage({ type: "tonyst-ready-for-files", wantsDisk }, window.location.origin);
-      } catch (_) {}
-    };
-
-    function releaseDiskDependency() {
-      if (diskDependencyReleased) return;
-      diskDependencyReleased = true;
-      try { Module.removeRunDependency("tonyst disk"); } catch (_) {}
-    }
-
-    function writePendingDiskToFs() {
-      if (!wantsDisk || !pendingDiskBuffer || !window.Module || !Module.FS_createDataFile) return false;
-      try {
-        const bytes = new Uint8Array(pendingDiskBuffer);
-        try { Module.FS_createPath("/", "tonyst", true, true); } catch (_) {}
-        Module.FS_createDataFile("/tonyst", safeName(pendingDiskName, "disk.st"), bytes, true, true, true);
-        createParentStatus("tonyst-status", "Engine, loading", `Loaded ${pendingDiskName || "disk"}`);
-        releaseDiskDependency();
-        return true;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`${response.status} while loading ${label}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        const parts = path.split("/");
+        const filename = parts.pop();
+        const parentPath = parts.join("/") || "/";
+        Module.FS_createDataFile(parentPath, filename, bytes, true, true, true);
+        createParentStatus("tonyst-status", "Engine, loading", `Loaded ${label}`);
       } catch (err) {
-        createParentStatus("tonyst-error", "Engine, error", `Could not mount disk: ${err.message || err}`);
-        releaseDiskDependency();
-        return false;
+        createParentStatus("tonyst-error", "Engine, error", `Could not load ${label}: ${err.message || err}`);
+      } finally {
+        Module.removeRunDependency(`tonyst ${label}`);
       }
     }
-
-    window.addEventListener("message", (event) => {
-      if (event.origin !== window.location.origin) return;
-
-      if (event.data?.type === "tonyst-file-data") {
-        pendingDiskName = event.data.diskName || diskName;
-        pendingDiskBuffer = event.data.diskBuffer || null;
-        writePendingDiskToFs();
-      }
-
-      if (event.data?.type === "tonyst-pause") {
-        if (typeof Module?.pauseMainLoop === "function" && event.data.paused) Module.pauseMainLoop();
-        if (typeof Module?.resumeMainLoop === "function" && !event.data.paused) Module.resumeMainLoop();
-      }
-    });
 
     var args = bootArgs.slice();
 
     var Module = {
       preRun: [function () {
-        try { Module.FS_createPath("/", "tonyst", true, true); } catch (_) {}
+        try {
+          Module.FS_createPath("/", "tonyst", true, true);
+        } catch (_) {}
 
-        if (wantsDisk) {
-          Module.addRunDependency("tonyst disk");
-          writePendingDiskToFs();
+        if (tosUrl) {
+          const path = `/tonyst/${safeName(tosName, "tos.img")}`;
+          args.push("--tos", path);
+          addLocalFile(tosUrl, path, "TOS");
+        }
 
-          setTimeout(() => {
-            if (!diskDependencyReleased) {
-              createParentStatus("tonyst-error", "Engine, error", "Disk was not received from the main page. Try Load game again.");
-              releaseDiskDependency();
-            }
-          }, 25000);
+        if (diskUrl) {
+          const path = `/tonyst/${safeName(diskName, "disk.st")}`;
+          args.push("--disk-a", path);
+          addLocalFile(diskUrl, path, "disk");
         }
       }],
-
       postRun: [function () {
-        createParentStatus("tonyst-status", "Engine, loaded", wantsDisk ? "Hatari booted with selected disk" : "Hatari demo booted", true);
+        createParentStatus("tonyst-status", "Engine, loaded", diskUrl ? "Hatari booted with selected disk" : "Hatari demo booted", true);
         setTimeout(() => canvas.focus(), 300);
       }],
-
       canvas,
       totalDependencies: 0,
 
@@ -154,7 +123,7 @@
       },
       set arguments(value) {
         for (let i = 0; i < value.length; i += 2) {
-          if (wantsDisk && value[i] === "-d") continue;
+          if (diskUrl && value[i] === "-d") continue;
           if (args.indexOf(value[i]) === -1) {
             args.push(value[i], value[i + 1]);
           }
@@ -163,13 +132,18 @@
     };
 
     Module.setStatus("Downloading...");
-    window.onerror = (message, source, lineno, colno, error) => {
-      const detail = error?.message || message || "Unknown Hatari error";
-      Module.setStatus("Error: " + detail);
-      createParentStatus("tonyst-error", "Engine, error", String(detail));
+    window.onerror = (e) => {
+      Module.setStatus("Error: " + e);
+      createParentStatus("tonyst-error", "Engine, error", String(e));
     };
 
-    requestFilesFromParent();
+    window.addEventListener("message", (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === "tonyst-pause") {
+        if (typeof Module.pauseMainLoop === "function" && event.data.paused) Module.pauseMainLoop();
+        if (typeof Module.resumeMainLoop === "function" && !event.data.paused) Module.resumeMainLoop();
+      }
+    });
 
     if (window.self !== window.top) {
       parent.document.addEventListener("fullscreenchange", () => {
@@ -181,6 +155,6 @@
       document.documentElement.classList.add("fullscreen");
     }
   </script>
-  <script async src="engine/hatari/hatari.js?v=64"></script>
+  <script async src="engine/hatari/hatari.js"></script>
 </body>
 </html>
