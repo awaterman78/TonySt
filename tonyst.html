@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en-us">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>TonyST Hatari WASM</title>
+  <title>TonyST Hatari</title>
   <style>
     * { outline: none; box-sizing: border-box; }
     html, body, canvas { margin: 0; padding: 0; width: 100%; height: 100%; }
@@ -23,138 +23,229 @@
       max-width: calc(100dvh * 7 / 5);
       max-height: 100dvh;
     }
+    .boot-message {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      gap: 8px;
+      text-align: center;
+      color: white;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #000;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .boot-message span { color: #aaaab6; }
+    .boot-message.hidden { display: none; }
   </style>
 </head>
 <body>
   <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="0" width="832" height="588"></canvas>
+  <div id="bootMessage" class="boot-message"><strong>TonyST</strong><span>Waiting for loader</span></div>
 
   <script>
-    const canvas = document.getElementById("canvas");
-    const params = new URLSearchParams(window.location.search);
-    const diskUrl = params.get("disk");
-    const tosUrl = params.get("tos");
-    const diskName = params.get("diskName") || "disk.st";
-    const tosName = params.get("tosName") || "tos.img";
+    (() => {
+      const VERSION = "70";
+      const ENGINE_DIR = "engine/hatari";
+      const ORIGIN = window.location.origin;
+      const canvas = document.getElementById("canvas");
+      const bootMessage = document.getElementById("bootMessage");
+      let started = false;
 
-    const safeName = (name, fallback) => {
-      const cleaned = String(name || fallback).replace(/[^a-zA-Z0-9._-]/g, "_");
-      return cleaned || fallback;
-    };
+      const keyMap = {
+        Space: { key: " ", code: "Space", keyCode: 32 },
+        Enter: { key: "Enter", code: "Enter", keyCode: 13 },
+        Backspace: { key: "Backspace", code: "Backspace", keyCode: 8 },
+        Escape: { key: "Escape", code: "Escape", keyCode: 27 },
+        Tab: { key: "Tab", code: "Tab", keyCode: 9 },
+        ArrowUp: { key: "ArrowUp", code: "ArrowUp", keyCode: 38 },
+        ArrowDown: { key: "ArrowDown", code: "ArrowDown", keyCode: 40 },
+        ArrowLeft: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37 },
+        ArrowRight: { key: "ArrowRight", code: "ArrowRight", keyCode: 39 },
+      };
 
-    const bootArgs = [
-      "--desktop", "false",
-      "--machine", "ste",
-      "--statusbar", "false",
-      "--memsize", "4",
-      "--cpuclock", "16",
-    ];
-
-    if (!diskUrl) {
-      bootArgs.push("-d", "/share/hatari/fs/");
-    }
-
-    const createParentStatus = (type, label, detail, hideOverlay) => {
-      try {
-        parent.postMessage({ type, label, detail, hideOverlay: Boolean(hideOverlay) }, window.location.origin);
-      } catch (_) {}
-    };
-
-    async function addLocalFile(url, path, label) {
-      Module.addRunDependency(`tonyst ${label}`);
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`${response.status} while loading ${label}`);
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        const parts = path.split("/");
-        const filename = parts.pop();
-        const parentPath = parts.join("/") || "/";
-        Module.FS_createDataFile(parentPath, filename, bytes, true, true, true);
-        createParentStatus("tonyst-status", "Engine, loading", `Loaded ${label}`);
-      } catch (err) {
-        createParentStatus("tonyst-error", "Engine, error", `Could not load ${label}: ${err.message || err}`);
-      } finally {
-        Module.removeRunDependency(`tonyst ${label}`);
-      }
-    }
-
-    var args = bootArgs.slice();
-
-    var Module = {
-      preRun: [function () {
-        try {
-          Module.FS_createPath("/", "tonyst", true, true);
-        } catch (_) {}
-
-        if (tosUrl) {
-          const path = `/tonyst/${safeName(tosName, "tos.img")}`;
-          args.push("--tos", path);
-          addLocalFile(tosUrl, path, "TOS");
-        }
-
-        if (diskUrl) {
-          const path = `/tonyst/${safeName(diskName, "disk.st")}`;
-          args.push("--disk-a", path);
-          addLocalFile(diskUrl, path, "disk");
-        }
-      }],
-      postRun: [function () {
-        createParentStatus("tonyst-status", "Engine, loaded", diskUrl ? "Hatari booted with selected disk" : "Hatari demo booted", true);
-        setTimeout(() => canvas.focus(), 300);
-      }],
-      canvas,
-      totalDependencies: 0,
-
-      print: (t) => console.log("[Hatari]", t),
-      printErr: (t) => console.warn("[Hatari]", t),
-      setStatus: (e) => {
-        console.log("[Hatari]", e);
-        createParentStatus("tonyst-status", e ? "Engine, loading" : "Engine, loaded", e || "Hatari ready");
-      },
-      monitorRunDependencies: function (e) {
-        this.totalDependencies = Math.max(this.totalDependencies, e);
-        this.setStatus(e
-          ? "Preparing... (" + (this.totalDependencies - e) + "/" + this.totalDependencies + ")"
-          : "All downloads complete."
-        );
-      },
-
-      get arguments() {
-        return args;
-      },
-      set arguments(value) {
-        for (let i = 0; i < value.length; i += 2) {
-          if (diskUrl && value[i] === "-d") continue;
-          if (args.indexOf(value[i]) === -1) {
-            args.push(value[i], value[i + 1]);
-          }
-        }
-      }
-    };
-
-    Module.setStatus("Downloading...");
-    window.onerror = (e) => {
-      Module.setStatus("Error: " + e);
-      createParentStatus("tonyst-error", "Engine, error", String(e));
-    };
-
-    window.addEventListener("message", (event) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type === "tonyst-pause") {
-        if (typeof Module.pauseMainLoop === "function" && event.data.paused) Module.pauseMainLoop();
-        if (typeof Module.resumeMainLoop === "function" && !event.data.paused) Module.resumeMainLoop();
-      }
-    });
-
-    if (window.self !== window.top) {
-      parent.document.addEventListener("fullscreenchange", () => {
-        parent.document.fullscreenElement === window.frameElement
-          ? document.documentElement.classList.add("fullscreen")
-          : document.documentElement.classList.remove("fullscreen");
+      for (let i = 1; i <= 10; i += 1) keyMap[`F${i}`] = { key: `F${i}`, code: `F${i}`, keyCode: 111 + i };
+      for (let i = 0; i <= 9; i += 1) keyMap[`Digit${i}`] = { key: String(i), code: `Digit${i}`, keyCode: 48 + i };
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach((letter) => {
+        keyMap[`Key${letter}`] = { key: letter.toLowerCase(), code: `Key${letter}`, keyCode: letter.charCodeAt(0) };
       });
-    } else {
-      document.documentElement.classList.add("fullscreen");
-    }
+
+      const sendParent = (type, label, detail) => {
+        try {
+          parent.postMessage({ type, label, detail }, ORIGIN);
+        } catch (_) {}
+      };
+
+      const setBootMessage = (text) => {
+        const span = bootMessage?.querySelector("span");
+        if (span && text) span.textContent = text;
+      };
+
+      const getKeyInfo = (code) => keyMap[code] || { key: code, code, keyCode: 0 };
+
+      const dispatchKeyboard = (target, type, info) => {
+        if (!target) return;
+        const event = new KeyboardEvent(type, {
+          key: info.key,
+          code: info.code,
+          keyCode: info.keyCode,
+          which: info.keyCode,
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        });
+        target.dispatchEvent(event);
+      };
+
+      const sendKey = (code, down) => {
+        const info = getKeyInfo(code);
+        const type = down ? "keydown" : "keyup";
+        try { canvas.focus(); } catch (_) {}
+        dispatchKeyboard(canvas, type, info);
+        dispatchKeyboard(document, type, info);
+        dispatchKeyboard(window, type, info);
+      };
+
+      const safeName = (name, fallback) => {
+        const cleaned = String(name || fallback).replace(/[^a-zA-Z0-9._-]/g, "_");
+        return cleaned || fallback;
+      };
+
+      function startHatari(startData = {}) {
+        if (started) return;
+        started = true;
+
+        const hasDisk = startData.diskBytes && startData.diskBytes.byteLength;
+        const diskFilename = safeName(startData.diskName || "disk.st", "disk.st");
+        const diskPath = `/tonyst/${diskFilename}`;
+
+        const args = [
+          "--desktop", "false",
+          "--machine", "ste",
+          "--statusbar", "false",
+          "--memsize", "4",
+          "--cpuclock", "16",
+        ];
+
+        if (hasDisk) {
+          args.push("--disk-a", diskPath);
+        } else {
+          args.push("-d", "/share/hatari/fs/");
+        }
+
+        const moduleObject = {
+          preRun: [function () {
+            if (!hasDisk) return;
+            try {
+              try { window.Module.FS_createPath("/", "tonyst", true, true); } catch (_) {}
+              window.Module.FS_createDataFile("/tonyst", diskFilename, new Uint8Array(startData.diskBytes), true, true, true);
+              sendParent("tonyst-status", "Engine, loading", `Disk mounted: ${startData.diskName || diskFilename}`);
+            } catch (err) {
+              sendParent("tonyst-error", "Disk error", `Could not mount disk: ${err?.message || err}`);
+            }
+          }],
+          postRun: [function () {
+            bootMessage?.classList.add("hidden");
+            sendParent("tonyst-loaded", "Engine, loaded", hasDisk ? `Booted ${startData.diskName || diskFilename}` : "Hatari ready");
+            setTimeout(() => canvas.focus(), 250);
+          }],
+          canvas,
+          totalDependencies: 0,
+          locateFile: (path) => `${ENGINE_DIR}/${path}?v=${VERSION}`,
+          print: (text) => console.log("[Hatari]", text),
+          printErr: (text) => console.warn("[Hatari]", text),
+          setStatus: (text) => {
+            console.log("[Hatari]", text);
+            setBootMessage(text || "Hatari ready");
+            sendParent("tonyst-status", text ? "Engine, loading" : "Engine, loaded", text || "Hatari ready");
+          },
+          monitorRunDependencies: function (remaining) {
+            this.totalDependencies = Math.max(this.totalDependencies, remaining);
+            const message = remaining
+              ? "Preparing... (" + (this.totalDependencies - remaining) + "/" + this.totalDependencies + ")"
+              : "All downloads complete.";
+            this.setStatus(message);
+          },
+        };
+
+        Object.defineProperty(moduleObject, "arguments", {
+          configurable: true,
+          enumerable: true,
+          get() { return args; },
+          set(value) {
+            if (!Array.isArray(value)) return;
+            for (let i = 0; i < value.length; i += 2) {
+              const flag = value[i];
+              const val = value[i + 1];
+              if (hasDisk && flag === "-d") continue;
+              if (args.indexOf(flag) === -1) args.push(flag, val);
+            }
+          }
+        });
+
+        window.Module = moduleObject;
+        window.onerror = (message) => {
+          const detail = String(message || "Unknown error");
+          setBootMessage(detail);
+          sendParent("tonyst-error", "Engine, error", detail);
+        };
+        window.onunhandledrejection = (event) => {
+          const detail = String(event.reason?.message || event.reason || "Unknown promise error");
+          setBootMessage(detail);
+          sendParent("tonyst-error", "Engine, error", detail);
+        };
+
+        setBootMessage(hasDisk ? "Mounting selected game" : "Starting clean boot");
+        sendParent("tonyst-status", "Engine, loading", hasDisk ? "Mounting selected game" : "Starting clean boot");
+
+        const script = document.createElement("script");
+        script.async = true;
+        script.src = `${ENGINE_DIR}/hatari.js?v=${VERSION}`;
+        script.onerror = () => {
+          const detail = `Could not load ${ENGINE_DIR}/hatari.js`;
+          setBootMessage(detail);
+          sendParent("tonyst-error", "Engine, error", detail);
+        };
+        document.body.appendChild(script);
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== ORIGIN) return;
+        const data = event.data || {};
+
+        if (data.type === "tonyst-start") {
+          startHatari(data);
+        }
+
+        if (data.type === "tonyst-key") {
+          sendKey(data.code, Boolean(data.down));
+        }
+
+        if (data.type === "tonyst-pause") {
+          try {
+            if (data.paused && typeof window.Module?.pauseMainLoop === "function") window.Module.pauseMainLoop();
+            if (!data.paused && typeof window.Module?.resumeMainLoop === "function") window.Module.resumeMainLoop();
+          } catch (_) {}
+        }
+      });
+
+      if (window.self !== window.top) {
+        try {
+          parent.document.addEventListener("fullscreenchange", () => {
+            parent.document.fullscreenElement === window.frameElement
+              ? document.documentElement.classList.add("fullscreen")
+              : document.documentElement.classList.remove("fullscreen");
+          });
+        } catch (_) {}
+      } else {
+        document.documentElement.classList.add("fullscreen");
+        setTimeout(() => startHatari({}), 250);
+      }
+
+      sendParent("tonyst-ready", "Engine, waiting", "Loader ready");
+      setTimeout(() => sendParent("tonyst-ready", "Engine, waiting", "Loader ready"), 300);
+    })();
   </script>
-  <script async src="engine/hatari/hatari.js"></script>
 </body>
 </html>

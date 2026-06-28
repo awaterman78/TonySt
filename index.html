@@ -3,103 +3,512 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>TonyST Web</title>
-  <link rel="stylesheet" href="main.css?v=65" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-  <meta name="description" content="TonyST Web, a flat iPhone friendly Atari ST web app using Hatari WebAssembly." />
+  <title>TonyST</title>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#101018" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101018;
+      --panel: rgba(18, 18, 27, 0.94);
+      --line: rgba(255, 255, 255, 0.16);
+      --line-soft: rgba(255, 255, 255, 0.08);
+      --text: #fff;
+      --muted: #aaaab6;
+      --button: #303044;
+      --button-2: #3a3a51;
+      --shadow: rgba(0, 0, 0, 0.48);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top left, #262638 0, var(--bg) 40%, #050507 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+
+    body {
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(180deg, var(--button-2), var(--button));
+      color: var(--text);
+      font: inherit;
+      font-weight: 850;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 26px var(--shadow);
+    }
+
+    button:active,
+    button.is-pressed {
+      transform: translateY(1px) scale(0.99);
+      filter: brightness(1.14);
+    }
+
+    .app-shell {
+      width: min(960px, 100%);
+      height: 100dvh;
+      margin: 0 auto;
+      padding: 8px 10px 8px;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .topbar {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .kicker {
+      margin: 0 0 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.67rem;
+      white-space: nowrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 7vw, 3rem);
+      letter-spacing: -0.055em;
+      line-height: 0.95;
+    }
+
+    .menu-button,
+    .small-button {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 18px;
+      white-space: nowrap;
+    }
+
+    .screen-area {
+      min-height: 0;
+      display: flex;
+    }
+
+    .screen-wrap {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: #000;
+      box-shadow: 0 14px 42px var(--shadow);
+    }
+
+    .emulator-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      display: grid;
+      place-content: center;
+      gap: 8px;
+      padding: 24px;
+      text-align: center;
+      background: #000;
+      transition: opacity 0.28s ease;
+      pointer-events: none;
+    }
+
+    .loading-overlay.is-hidden {
+      opacity: 0;
+    }
+
+    .loading-overlay strong {
+      font-size: 1.7rem;
+    }
+
+    .loading-overlay span {
+      color: var(--muted);
+    }
+
+    .screen-status {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      z-index: 3;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 9px;
+      border: 1px solid var(--line-soft);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.64);
+      color: var(--muted);
+      font-size: 0.76rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .screen-status span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .play-controls {
+      min-height: 150px;
+      max-height: 220px;
+      padding: 8px 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.22));
+      box-shadow: 0 14px 42px var(--shadow);
+      display: grid;
+      grid-template-columns: minmax(148px, 1fr) minmax(126px, 0.74fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .joystick-wrap {
+      display: grid;
+      place-items: center;
+      gap: 4px;
+    }
+
+    .joystick-label {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+    }
+
+    .joystick {
+      position: relative;
+      width: min(38vw, 156px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.10) 0 8%, rgba(255,255,255,0.05) 9% 31%, rgba(0,0,0,0.18) 32% 100%),
+        linear-gradient(180deg, #343449, #242434);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -20px 36px rgba(0,0,0,0.25), 0 14px 36px var(--shadow);
+      touch-action: none;
+    }
+
+    .stick-cross {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.11);
+      border-radius: 999px;
+      pointer-events: none;
+    }
+
+    .stick-cross.horizontal {
+      width: 62%;
+      height: 8px;
+    }
+
+    .stick-cross.vertical {
+      width: 8px;
+      height: 62%;
+    }
+
+    .stick-thumb {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 42%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(180deg, #f5f5ff, #bfc0d6);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 10px 22px rgba(0,0,0,0.55);
+      pointer-events: none;
+    }
+
+    .action-wrap {
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .fire-button {
+      width: min(32vw, 128px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      font-size: 1.15rem;
+      display: grid;
+      place-content: center;
+      gap: 2px;
+    }
+
+    .fire-button span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 750;
+    }
+
+    .keyboard-toggle {
+      width: min(34vw, 142px);
+      min-height: 44px;
+      font-size: 0.9rem;
+    }
+
+    .hidden-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+    }
+
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0,0,0,0.50);
+      display: grid;
+      place-items: end center;
+      padding: 12px;
+    }
+
+    .drawer-backdrop[hidden],
+    .keyboard-panel[hidden] {
+      display: none;
+    }
+
+    .drawer {
+      width: min(620px, 100%);
+      max-height: min(82dvh, 620px);
+      overflow: auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(31,31,45,0.98), rgba(10,10,14,0.98));
+      box-shadow: 0 18px 55px rgba(0,0,0,0.65);
+    }
+
+    .drawer-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .drawer-head h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      letter-spacing: -0.04em;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .menu-grid button {
+      min-height: 58px;
+      padding: 8px;
+    }
+
+    .notes {
+      margin-top: 14px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .notes summary {
+      color: #fff;
+      font-weight: 850;
+      cursor: pointer;
+    }
+
+    .credit {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .keyboard-panel {
+      position: fixed;
+      left: 8px;
+      right: 8px;
+      bottom: calc(env(safe-area-inset-bottom) + 8px);
+      z-index: 30;
+      max-height: 54dvh;
+      overflow: auto;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(30,30,44,0.98), rgba(8,8,12,0.98));
+      box-shadow: 0 18px 55px rgba(0,0,0,0.7);
+    }
+
+    .keyboard-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .key-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+    }
+
+    .key-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .key-row button {
+      flex: 0 0 auto;
+      min-width: 42px;
+      min-height: 42px;
+      padding: 0 10px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+    }
+
+    .key-row button.key-wide {
+      min-width: 74px;
+    }
+
+    .key-row button.key-space {
+      min-width: 160px;
+    }
+
+    @media (max-height: 720px) {
+      .app-shell { gap: 6px; padding-top: 6px; }
+      .topbar { min-height: 38px; }
+      .kicker { display: none; }
+      h1 { font-size: 1.65rem; }
+      .play-controls { min-height: 136px; padding: 6px 8px; }
+      .joystick { width: min(34vw, 136px); }
+      .fire-button { width: min(29vw, 110px); }
+    }
+
+    @media (orientation: landscape) {
+      .app-shell {
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) 230px;
+        grid-template-areas:
+          "top top"
+          "screen controls";
+      }
+
+      .topbar { grid-area: top; }
+      .screen-area { grid-area: screen; }
+      .play-controls {
+        grid-area: controls;
+        min-height: 0;
+        height: 100%;
+        grid-template-columns: 1fr;
+        align-content: center;
+      }
+
+      .joystick { width: min(26vw, 150px); }
+      .fire-button { width: min(22vw, 116px); }
+    }
+  </style>
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
-      <div class="brand">
+      <div>
         <p class="kicker">Atari ST on iPhone</p>
         <h1>TonyST</h1>
       </div>
-      <button class="menu-button" id="menuButton" type="button" aria-label="Open menu">☰ Menu</button>
+      <button class="menu-button" id="menuButton" type="button">☰ Menu</button>
     </header>
 
     <section class="screen-area" aria-label="Atari ST emulator screen">
-      <div class="screen-wrap">
-        <iframe
-          id="emulatorFrame"
-          class="emulator-frame"
-          src="tonyst.html?v=65"
-          title="Hatari Atari ST emulator"
-          allow="fullscreen"
-        ></iframe>
+      <div class="screen-wrap" id="screenWrap">
+        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=70" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
         <div id="loadingOverlay" class="loading-overlay">
           <strong>TonyST</strong>
           <span id="engineStatus">Starting Hatari WebAssembly</span>
         </div>
-        <div class="screen-status" aria-live="polite">
+        <div class="screen-status">
           <span id="engineLabel">Engine, starting</span>
-          <span id="fileLabel">Built in demo disk</span>
+          <span id="fileLabel">Built in boot</span>
         </div>
       </div>
     </section>
 
-    <section class="play-controls" aria-label="Game controls">
+    <section class="play-controls" aria-label="TonyST controls">
       <div class="joystick-wrap">
         <div class="joystick-label">Joystick</div>
-        <div class="joystick" id="joystick" role="application" aria-label="Virtual joystick">
-          <div class="stick-cross horizontal"></div>
-          <div class="stick-cross vertical"></div>
-          <div class="stick-thumb" id="stickThumb"></div>
+        <div class="joystick" id="joystick" role="application" aria-label="Joystick">
+          <span class="stick-cross horizontal"></span>
+          <span class="stick-cross vertical"></span>
+          <span class="stick-thumb" id="stickThumb"></span>
         </div>
       </div>
 
       <div class="action-wrap">
-        <button class="fire-button" id="fireButton" data-key="Space" type="button">
-          Fire
-          <span>Space</span>
-        </button>
+        <button class="fire-button" id="fireButton" data-key="Space" type="button">Fire<span>Space</span></button>
         <button class="keyboard-toggle" id="keyboardButton" type="button">⌨ Keyboard</button>
       </div>
     </section>
 
-    <input id="tosInput" class="hidden-input" type="file" />
     <input id="diskInput" class="hidden-input" type="file" />
 
     <div class="drawer-backdrop" id="menuBackdrop" hidden>
-      <aside class="drawer" id="menuDrawer" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+      <aside class="drawer" aria-label="Menu">
         <div class="drawer-head">
-          <div>
-            <p class="kicker">TonyST</p>
-            <h2 id="menuTitle">Menu</h2>
-          </div>
+          <h2>Menu</h2>
           <button class="small-button" id="closeMenuButton" type="button">Close</button>
         </div>
 
         <div class="menu-grid">
-          <button id="diskButton" type="button">Load game or disk</button>
-          <button id="cleanStartButton" type="button">Clean start</button>
-          <button id="runButton" type="button">Focus screen</button>
-          <button id="pauseButton" type="button">Pause</button>
-          <button id="resetButton" type="button">Reset current</button>
+          <button id="loadGameButton" type="button">Load game</button>
+          <button id="resetButton" type="button">Reset</button>
+          <button id="cleanBootButton" type="button">Clean boot</button>
           <button id="fullscreenButton" type="button">Full screen</button>
         </div>
 
-        <details class="notes">
-          <summary>Advanced BIOS / TOS</summary>
-          <div class="menu-grid advanced-grid">
-            <button id="tosButton" type="button">BIOS / TOS, disabled for now</button>
-            <button id="clearTosButton" type="button">Clear saved files</button>
-          </div>
-          <p>BIOS loading is parked for now. Use Load game or disk while we keep this version stable.</p>
-        </details>
-
-        <details class="notes">
+        <details class="notes" open>
           <summary>Quick help</summary>
-          <p>Use Load game or disk for .st, .msa, .stx, .dim, .ipf or .zip files. Tap Fire for Spacebar on trainer screens. If a game boots to the Atari desktop, double tap Disk A.</p>
+          <p>Use Load game for .st or .msa first. Tap Fire when an intro asks for Space. If a game boots to the Atari desktop, open Disk A.</p>
+          <p>BIOS loading is parked for this build. This version sends the game file directly into Hatari, not through a blob link, so iPhone Safari has less chance to sulk.</p>
         </details>
 
-        <p class="credit">Uses the Mesmotronic browser Hatari build. Keep the original licence and credit files in the repo.</p>
+        <p class="credit">Uses the Mesmotronic browser Hatari build and the existing engine files in engine/hatari.</p>
       </aside>
     </div>
 
@@ -167,7 +576,7 @@
         <button data-key="KeyM" type="button">M</button>
         <button class="key-wide" data-key="Backspace" type="button">Back</button>
       </div>
-      <div class="key-row key-row-main">
+      <div class="key-row">
         <button data-key="ArrowLeft" type="button">←</button>
         <button data-key="ArrowUp" type="button">↑</button>
         <button data-key="ArrowDown" type="button">↓</button>
@@ -177,6 +586,364 @@
     </div>
   </main>
 
-  <script src="app.js?v=65"></script>
+  <script>
+    (() => {
+      const VERSION = "70";
+      const ORIGIN = window.location.origin;
+      const frame = document.getElementById("emulatorFrame");
+      const overlay = document.getElementById("loadingOverlay");
+      const engineStatus = document.getElementById("engineStatus");
+      const engineLabel = document.getElementById("engineLabel");
+      const fileLabel = document.getElementById("fileLabel");
+      const diskInput = document.getElementById("diskInput");
+      const loadGameButton = document.getElementById("loadGameButton");
+      const resetButton = document.getElementById("resetButton");
+      const cleanBootButton = document.getElementById("cleanBootButton");
+      const fullscreenButton = document.getElementById("fullscreenButton");
+      const menuButton = document.getElementById("menuButton");
+      const closeMenuButton = document.getElementById("closeMenuButton");
+      const menuBackdrop = document.getElementById("menuBackdrop");
+      const keyboardButton = document.getElementById("keyboardButton");
+      const keyboardPanel = document.getElementById("keyboardPanel");
+      const closeKeyboardButton = document.getElementById("closeKeyboardButton");
+      const joystick = document.getElementById("joystick");
+      const stickThumb = document.getElementById("stickThumb");
+
+      let diskFile = null;
+      let diskName = "";
+      let childReady = false;
+      let bootToken = 0;
+      let joystickKeys = new Set();
+      let activeJoyTouchId = null;
+      const heldButtonKeys = new Set();
+      const isTouchDevice = ("ontouchstart" in window) || (navigator.maxTouchPoints || 0) > 0;
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations?.().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => {});
+      }
+      if ("caches" in window) {
+        caches.keys?.().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))).catch(() => {});
+      }
+
+      const status = (label, detail) => {
+        if (engineLabel) engineLabel.textContent = label;
+        if (detail && engineStatus) engineStatus.textContent = detail;
+      };
+
+      const setFileLabel = () => {
+        if (fileLabel) fileLabel.textContent = diskName || "Built in boot";
+      };
+
+      const showOverlay = (detail) => {
+        overlay?.classList.remove("is-hidden");
+        status("Engine, starting", detail || "Starting Hatari WebAssembly");
+        setFileLabel();
+      };
+
+      const hideOverlay = () => {
+        overlay?.classList.add("is-hidden");
+      };
+
+      const closeMenu = () => {
+        if (menuBackdrop) menuBackdrop.hidden = true;
+      };
+
+      const openMenu = () => {
+        if (keyboardPanel) keyboardPanel.hidden = true;
+        if (menuBackdrop) menuBackdrop.hidden = false;
+      };
+
+      const reloadFrame = () => {
+        releaseJoystick();
+        releaseHeldButtons();
+        childReady = false;
+        bootToken += 1;
+        showOverlay(diskName ? "Preparing selected game" : "Starting clean boot");
+        if (frame) frame.src = `tonyst.html?v=${VERSION}&boot=${bootToken}`;
+      };
+
+      const sendStartToChild = async () => {
+        if (!frame?.contentWindow || !childReady) return;
+        const myToken = bootToken;
+        const payload = { type: "tonyst-start", version: VERSION, bootToken: myToken, diskName: diskName || "" };
+
+        if (diskFile) {
+          status("Engine, loading", "Reading selected game file");
+          try {
+            payload.diskBytes = await diskFile.arrayBuffer();
+          } catch (err) {
+            status("File error", "Could not read the selected game file");
+            return;
+          }
+        }
+
+        if (myToken !== bootToken) return;
+        status("Engine, loading", diskName ? "Sending game to Hatari" : "Starting Hatari");
+        frame.contentWindow.postMessage(payload, ORIGIN);
+      };
+
+      const postToChild = (message) => {
+        try { frame?.contentWindow?.postMessage(message, ORIGIN); } catch (_) {}
+      };
+
+      const sendKey = (code, down) => {
+        postToChild({ type: "tonyst-key", code, down: Boolean(down) });
+      };
+
+      function holdButtonKey(code) {
+        if (heldButtonKeys.has(code)) return;
+        heldButtonKeys.add(code);
+        sendKey(code, true);
+      }
+
+      function releaseButtonKey(code) {
+        if (!heldButtonKeys.has(code)) return;
+        heldButtonKeys.delete(code);
+        sendKey(code, false);
+      }
+
+      function releaseHeldButtons() {
+        Array.from(heldButtonKeys).forEach((code) => releaseButtonKey(code));
+        document.querySelectorAll(".is-pressed").forEach((button) => button.classList.remove("is-pressed"));
+      }
+
+      const setJoystickKeys = (nextKeys) => {
+        joystickKeys.forEach((code) => {
+          if (!nextKeys.has(code)) sendKey(code, false);
+        });
+        nextKeys.forEach((code) => {
+          if (!joystickKeys.has(code)) sendKey(code, true);
+        });
+        joystickKeys = nextKeys;
+      };
+
+      function releaseJoystick() {
+        setJoystickKeys(new Set());
+        activeJoyTouchId = null;
+        if (stickThumb) stickThumb.style.transform = "translate(-50%, -50%)";
+      }
+
+      const updateJoystickFromPoint = (clientX, clientY) => {
+        if (!joystick || !stickThumb) return;
+        const rect = joystick.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const rawX = clientX - cx;
+        const rawY = clientY - cy;
+        const max = rect.width * 0.28;
+        const distance = Math.hypot(rawX, rawY);
+        const scale = distance > max ? max / distance : 1;
+        const x = rawX * scale;
+        const y = rawY * scale;
+        const dead = rect.width * 0.12;
+        const next = new Set();
+
+        if (rawX < -dead) next.add("ArrowLeft");
+        if (rawX > dead) next.add("ArrowRight");
+        if (rawY < -dead) next.add("ArrowUp");
+        if (rawY > dead) next.add("ArrowDown");
+
+        stickThumb.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        setJoystickKeys(next);
+      };
+
+      const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
+
+      window.addEventListener("message", (event) => {
+        if (event.origin !== ORIGIN) return;
+        const data = event.data || {};
+
+        if (data.type === "tonyst-ready") {
+          childReady = true;
+          sendStartToChild();
+        }
+
+        if (data.type === "tonyst-status") {
+          status(data.label || "Engine, loading", data.detail || "Hatari working");
+        }
+
+        if (data.type === "tonyst-loaded") {
+          status("Engine, loaded", data.detail || "Hatari ready");
+          setFileLabel();
+          hideOverlay();
+        }
+
+        if (data.type === "tonyst-error") {
+          status(data.label || "Engine, error", data.detail || "Hatari error");
+          setTimeout(hideOverlay, 1400);
+        }
+      });
+
+      frame?.addEventListener("load", () => {
+        window.setTimeout(sendStartToChild, 120);
+      });
+
+      menuButton?.addEventListener("click", openMenu);
+      closeMenuButton?.addEventListener("click", closeMenu);
+      menuBackdrop?.addEventListener("click", (event) => {
+        if (event.target === menuBackdrop) closeMenu();
+      });
+
+      keyboardButton?.addEventListener("click", () => {
+        closeMenu();
+        if (keyboardPanel) keyboardPanel.hidden = !keyboardPanel.hidden;
+      });
+
+      closeKeyboardButton?.addEventListener("click", () => {
+        if (keyboardPanel) keyboardPanel.hidden = true;
+      });
+
+      loadGameButton?.addEventListener("click", () => {
+        closeMenu();
+        diskInput?.click();
+      });
+
+      resetButton?.addEventListener("click", () => {
+        closeMenu();
+        reloadFrame();
+      });
+
+      cleanBootButton?.addEventListener("click", () => {
+        closeMenu();
+        diskFile = null;
+        diskName = "";
+        if (diskInput) diskInput.value = "";
+        reloadFrame();
+      });
+
+      fullscreenButton?.addEventListener("click", async () => {
+        closeMenu();
+        try {
+          await (frame.requestFullscreen?.() || frame.webkitRequestFullscreen?.());
+        } catch (_) {
+          try { await document.documentElement.requestFullscreen?.(); } catch (_) {}
+        }
+      });
+
+      diskInput?.addEventListener("change", () => {
+        const file = diskInput.files?.[0];
+        if (!file) return;
+        diskFile = file;
+        diskName = file.name;
+        reloadFrame();
+      });
+
+      if (isTouchDevice && joystick) {
+        joystick.addEventListener("touchstart", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (keyboardPanel) keyboardPanel.hidden = true;
+          if (activeJoyTouchId !== null || !event.changedTouches.length) return;
+          const touch = event.changedTouches[0];
+          activeJoyTouchId = touch.identifier;
+          updateJoystickFromPoint(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        joystick.addEventListener("touchmove", (event) => {
+          if (activeJoyTouchId === null) return;
+          const touch = findTouch(event.changedTouches, activeJoyTouchId) || findTouch(event.touches, activeJoyTouchId);
+          if (!touch) return;
+          event.preventDefault();
+          event.stopPropagation();
+          updateJoystickFromPoint(touch.clientX, touch.clientY);
+        }, { passive: false });
+
+        ["touchend", "touchcancel"].forEach((type) => {
+          joystick.addEventListener(type, (event) => {
+            if (activeJoyTouchId === null) return;
+            const touch = findTouch(event.changedTouches, activeJoyTouchId);
+            if (!touch) return;
+            event.preventDefault();
+            event.stopPropagation();
+            releaseJoystick();
+          }, { passive: false });
+        });
+      } else if (joystick) {
+        joystick.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (keyboardPanel) keyboardPanel.hidden = true;
+          joystick.setPointerCapture?.(event.pointerId);
+          updateJoystickFromPoint(event.clientX, event.clientY);
+        });
+
+        joystick.addEventListener("pointermove", (event) => {
+          if (!joystick.hasPointerCapture?.(event.pointerId)) return;
+          event.preventDefault();
+          updateJoystickFromPoint(event.clientX, event.clientY);
+        });
+
+        ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
+          joystick.addEventListener(type, (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            releaseJoystick();
+          });
+        });
+      }
+
+      document.querySelectorAll("[data-key]").forEach((button) => {
+        const code = button.dataset.key;
+        if (!code) return;
+
+        if (isTouchDevice) {
+          const activeTouches = new Set();
+
+          button.addEventListener("touchstart", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (button.id === "fireButton" && keyboardPanel) keyboardPanel.hidden = true;
+            Array.from(event.changedTouches).forEach((touch) => activeTouches.add(touch.identifier));
+            button.classList.add("is-pressed");
+            holdButtonKey(code);
+          }, { passive: false });
+
+          const touchEnd = (event) => {
+            let changed = false;
+            Array.from(event.changedTouches).forEach((touch) => {
+              if (activeTouches.delete(touch.identifier)) changed = true;
+            });
+            if (!changed) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (activeTouches.size === 0) {
+              button.classList.remove("is-pressed");
+              releaseButtonKey(code);
+            }
+          };
+
+          button.addEventListener("touchend", touchEnd, { passive: false });
+          button.addEventListener("touchcancel", touchEnd, { passive: false });
+        } else {
+          const down = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (button.id === "fireButton" && keyboardPanel) keyboardPanel.hidden = true;
+            button.classList.add("is-pressed");
+            holdButtonKey(code);
+          };
+          const up = (event) => {
+            event.preventDefault();
+            button.classList.remove("is-pressed");
+            releaseButtonKey(code);
+          };
+          button.addEventListener("pointerdown", down);
+          button.addEventListener("pointerup", up);
+          button.addEventListener("pointercancel", up);
+          button.addEventListener("pointerleave", up);
+        }
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          releaseJoystick();
+          releaseHeldButtons();
+        }
+      });
+
+      setFileLabel();
+      showOverlay("Starting Hatari WebAssembly");
+    })();
+  </script>
 </body>
 </html>
