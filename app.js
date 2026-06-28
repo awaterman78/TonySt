@@ -1,8 +1,11 @@
 (() => {
-  const VERSION = "62";
+  const VERSION = "64";
+
+  // GitHub Pages and Safari can hang on old service worker caches while testing.
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations?.().then((regs) => regs.forEach((reg) => reg.unregister())).catch(() => {});
   }
+
   const frame = document.getElementById("emulatorFrame");
   const overlay = document.getElementById("loadingOverlay");
   const engineStatus = document.getElementById("engineStatus");
@@ -30,9 +33,7 @@
   const joystick = document.getElementById("joystick");
   const stickThumb = document.getElementById("stickThumb");
 
-  let tosUrl = "";
-  let diskUrl = "";
-  let tosName = "";
+  let diskFile = null;
   let diskName = "";
   let isPaused = false;
   let joystickKeys = new Set();
@@ -62,56 +63,38 @@
     keyMap[`Key${letter}`] = { key: letter.toLowerCase(), code: `Key${letter}`, keyCode: letter.charCodeAt(0) };
   });
 
-  const revoke = (url) => {
-    if (url) URL.revokeObjectURL(url);
-  };
-
   const status = (label, detail) => {
     engineLabel.textContent = label;
     if (detail) engineStatus.textContent = detail;
   };
 
   const setFileLabel = () => {
-    if (diskName && tosName) {
-      fileLabel.textContent = `${diskName}, ${tosName}`;
-    } else if (diskName) {
-      fileLabel.textContent = diskName;
-    } else if (tosName) {
-      fileLabel.textContent = `${tosName}, waiting for disk`;
-    } else {
-      fileLabel.textContent = "Built in boot";
-    }
-  };
-
-  const clearTos = () => {
-    revoke(tosUrl);
-    tosUrl = "";
-    tosName = "";
-    tosInput.value = "";
-  };
-
-  const clearDisk = () => {
-    revoke(diskUrl);
-    diskUrl = "";
-    diskName = "";
-    diskInput.value = "";
+    fileLabel.textContent = diskName || "Built in boot";
   };
 
   const clearAllFiles = () => {
-    clearTos();
-    clearDisk();
+    diskFile = null;
+    diskName = "";
+    diskInput.value = "";
+    if (tosInput) tosInput.value = "";
     isPaused = false;
     if (pauseButton) pauseButton.textContent = "Pause";
+    setFileLabel();
   };
 
   const buildSrc = () => {
     const params = new URLSearchParams();
     params.set("v", VERSION);
     params.set("r", String(Date.now()));
-    if (tosUrl) params.set("tos", tosUrl);
-    if (diskUrl) params.set("disk", diskUrl);
-    if (diskName) params.set("diskName", diskName);
-    if (tosName) params.set("tosName", tosName);
+
+    // v0.6.4 deliberately does NOT use blob URLs for disk files.
+    // iPhone Safari can be awkward fetching a parent-created blob from inside an iframe.
+    // Instead the iframe asks the parent for the ArrayBuffer by postMessage.
+    if (diskFile) {
+      params.set("hasDisk", "1");
+      params.set("diskName", diskName || diskFile.name || "disk.st");
+    }
+
     return `tonyst.html?${params.toString()}`;
   };
 
@@ -128,7 +111,7 @@
     releaseJoystick();
     releaseHeldButtons();
     overlay.classList.remove("is-hidden");
-    status("Engine, starting", diskName ? "Booting selected disk" : (tosName ? "TOS saved, booting without disk" : "Starting Hatari WebAssembly"));
+    status("Engine, starting", diskName ? "Booting selected disk" : "Starting Hatari WebAssembly");
     setFileLabel();
     frame.src = buildSrc();
   };
@@ -141,6 +124,22 @@
       canvas?.focus();
     } catch (_) {}
   };
+
+  async function sendDiskToFrame() {
+    if (!diskFile || !frame.contentWindow) return;
+    try {
+      status("Engine, loading", `Sending ${diskName || diskFile.name} to Hatari`);
+      const buffer = await diskFile.arrayBuffer();
+      frame.contentWindow.postMessage({
+        type: "tonyst-file-data",
+        diskName: diskName || diskFile.name || "disk.st",
+        diskBuffer: buffer,
+      }, window.location.origin, [buffer]);
+    } catch (err) {
+      status("Engine, error", `Could not send disk: ${err?.message || err}`);
+      overlay.classList.remove("is-hidden");
+    }
+  }
 
   const getKeyInfo = (code) => keyMap[code] || { key: code, code, keyCode: 0 };
 
@@ -230,16 +229,22 @@
   const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
 
   frame.addEventListener("load", () => {
-    status("Engine, loading", diskName ? "Selected disk sent to Hatari" : (tosName ? "Selected TOS sent to Hatari" : "Starting Hatari"));
+    status("Engine, loading", diskName ? "Waiting for Hatari to request the disk" : "Starting Hatari");
     setTimeout(focusEmulator, 1000);
   });
 
   window.addEventListener("message", (event) => {
     if (event.origin !== window.location.origin) return;
+
+    if (event.data?.type === "tonyst-ready-for-files") {
+      if (event.data.wantsDisk) sendDiskToFrame();
+    }
+
     if (event.data?.type === "tonyst-status") {
       status(event.data.label || "Engine, loaded", event.data.detail || "Hatari ready");
       if (event.data.hideOverlay) overlay.classList.add("is-hidden");
     }
+
     if (event.data?.type === "tonyst-error") {
       status("Engine, error", event.data.detail || "Hatari error");
       overlay.classList.remove("is-hidden");
@@ -260,10 +265,12 @@
     keyboardPanel.hidden = true;
   });
 
-  tosButton.addEventListener("click", () => {
+  tosButton?.addEventListener("click", () => {
     closeMenu();
-    tosInput.click();
+    status("BIOS/TOS paused", "Use Load game or disk only for this build");
+    overlay.classList.add("is-hidden");
   });
+
   diskButton.addEventListener("click", () => {
     closeMenu();
     diskInput.click();
@@ -277,33 +284,19 @@
 
   clearTosButton?.addEventListener("click", () => {
     closeMenu();
-    clearTos();
+    clearAllFiles();
     reboot();
   });
 
-  tosInput.addEventListener("change", () => {
-    const file = tosInput.files?.[0];
-    if (!file) return;
-    revoke(tosUrl);
-    tosUrl = URL.createObjectURL(file);
-    tosName = file.name;
-    setFileLabel();
-
-    // Do not black-screen the app by booting a bare TOS file on its own.
-    // Keep it ready for the next disk load instead. If a disk is already selected, reboot with both.
-    if (diskUrl) {
-      reboot();
-    } else {
-      overlay.classList.add("is-hidden");
-      status("TOS saved", "Now load a game disk, or use Clean start from Menu");
-    }
+  tosInput?.addEventListener("change", () => {
+    tosInput.value = "";
+    status("BIOS/TOS paused", "Use Load game or disk only for this build");
   });
 
   diskInput.addEventListener("change", () => {
     const file = diskInput.files?.[0];
     if (!file) return;
-    revoke(diskUrl);
-    diskUrl = URL.createObjectURL(file);
+    diskFile = file;
     diskName = file.name;
     reboot();
   });
@@ -340,6 +333,7 @@
   if (isTouchDevice) {
     joystick.addEventListener("touchstart", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       keyboardPanel.hidden = true;
       if (activeJoyTouchId !== null || !event.changedTouches.length) return;
       const touch = event.changedTouches[0];
@@ -352,6 +346,7 @@
       const touch = findTouch(event.changedTouches, activeJoyTouchId) || findTouch(event.touches, activeJoyTouchId);
       if (!touch) return;
       event.preventDefault();
+      event.stopPropagation();
       updateJoystickFromPoint(touch.clientX, touch.clientY);
     }, { passive: false });
 
@@ -361,12 +356,14 @@
         const touch = findTouch(event.changedTouches, activeJoyTouchId);
         if (!touch) return;
         event.preventDefault();
+        event.stopPropagation();
         releaseJoystick();
       }, { passive: false });
     });
   } else {
     joystick.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       keyboardPanel.hidden = true;
       joystick.setPointerCapture?.(event.pointerId);
       updateJoystickFromPoint(event.clientX, event.clientY);
@@ -379,6 +376,7 @@
     ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
       joystick.addEventListener(type, (event) => {
         event.preventDefault();
+        event.stopPropagation();
         releaseJoystick();
       });
     });
@@ -392,6 +390,7 @@
 
       button.addEventListener("touchstart", (event) => {
         event.preventDefault();
+        event.stopPropagation();
         if (button.id === "fireButton") keyboardPanel.hidden = true;
         Array.from(event.changedTouches).forEach((touch) => activeTouches.add(touch.identifier));
         button.classList.add("is-pressed");
@@ -405,6 +404,7 @@
         });
         if (!changed) return;
         event.preventDefault();
+        event.stopPropagation();
         if (activeTouches.size === 0) {
           button.classList.remove("is-pressed");
           releaseButtonKey(code);
@@ -416,6 +416,7 @@
     } else {
       const down = (event) => {
         event.preventDefault();
+        event.stopPropagation();
         if (button.id === "fireButton") keyboardPanel.hidden = true;
         button.classList.add("is-pressed");
         holdButtonKey(code);
