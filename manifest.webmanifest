@@ -1,0 +1,23 @@
+{
+  "name": "TonyST Web",
+  "short_name": "TonyST",
+  "description": "A personal Atari ST web app shell using Hatari WebAssembly.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#08080c",
+  "theme_color": "#08080c",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
