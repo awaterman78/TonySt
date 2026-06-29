@@ -15,6 +15,8 @@
       cursor: none;
       image-rendering: pixelated;
       touch-action: none;
+      width: 100% !important;
+      height: 100% !important;
     }
     .fullscreen canvas {
       aspect-ratio: 4 / 3;
@@ -46,7 +48,7 @@
 
   <script>
     (() => {
-      const VERSION = "72";
+      const VERSION = "73";
       const ENGINE_DIR = "engine/hatari";
       const ORIGIN = window.location.origin;
       const canvas = document.getElementById("canvas");

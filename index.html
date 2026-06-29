@@ -65,60 +65,67 @@
 
     .app-shell {
       width: min(960px, 100%);
-      height: 100dvh;
+      height: 100vh;
+      height: 100svh;
+      min-height: 100svh;
       margin: 0 auto;
-      padding: 8px 10px 8px;
+      padding: 6px 10px max(6px, env(safe-area-inset-bottom));
       display: grid;
-      grid-template-rows: auto minmax(0, 1fr) auto;
-      gap: 8px;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 7px;
     }
 
     .topbar {
-      min-height: 44px;
+      min-height: 38px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
 
     .kicker {
-      margin: 0 0 1px;
+      margin: 0;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.18em;
-      font-size: 0.67rem;
+      letter-spacing: 0.19em;
+      font-size: 0.58rem;
+      line-height: 1.1;
       white-space: nowrap;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.8rem, 7vw, 3rem);
+      font-size: clamp(1.62rem, 5.8vw, 2.45rem);
       letter-spacing: -0.055em;
-      line-height: 0.95;
+      line-height: 0.92;
     }
 
     .menu-button,
     .small-button {
-      min-height: 42px;
-      padding: 0 16px;
-      border-radius: 18px;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 17px;
       white-space: nowrap;
     }
 
     .screen-area {
       min-height: 0;
       display: flex;
+      align-items: start;
+      justify-content: center;
     }
 
     .screen-wrap {
       position: relative;
       overflow: hidden;
       width: 100%;
+      aspect-ratio: 832 / 588;
       min-height: 0;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: #000;
-      box-shadow: 0 14px 42px var(--shadow);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 19px;
+      background: #050506;
+      box-shadow: 0 12px 36px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      isolation: isolate;
     }
 
     .emulator-frame {
@@ -128,6 +135,13 @@
       height: 100%;
       border: 0;
       background: #000;
+      transform-origin: 50% 50%;
+      transition: transform 0.18s ease;
+      will-change: transform;
+    }
+
+    .screen-wrap.is-zoom .emulator-frame {
+      transform: scale(1.075);
     }
 
     .loading-overlay {
@@ -158,20 +172,20 @@
 
     .screen-status {
       position: absolute;
-      left: 8px;
-      right: 8px;
-      bottom: 8px;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
       z-index: 3;
       display: flex;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       align-items: center;
-      padding: 7px 9px;
+      padding: 5px 8px;
       border: 1px solid var(--line-soft);
-      border-radius: 14px;
-      background: rgba(0,0,0,0.64);
-      color: var(--muted);
-      font-size: 0.76rem;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.56);
+      color: rgba(225,225,235,0.74);
+      font-size: 0.68rem;
       backdrop-filter: blur(8px);
     }
 
@@ -183,16 +197,16 @@
     }
 
     .play-controls {
-      min-height: 150px;
-      max-height: 220px;
-      padding: 8px 8px 10px;
+      min-height: 132px;
+      max-height: 178px;
+      padding: 7px 8px 8px;
       border: 1px solid var(--line);
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.22));
-      box-shadow: 0 14px 42px var(--shadow);
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(0,0,0,0.24));
+      box-shadow: 0 12px 34px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.05);
       display: grid;
-      grid-template-columns: minmax(148px, 1fr) minmax(126px, 0.74fr);
-      gap: 12px;
+      grid-template-columns: minmax(138px, 1fr) minmax(118px, 0.72fr);
+      gap: 10px;
       align-items: center;
     }
 
@@ -211,14 +225,14 @@
 
     .joystick {
       position: relative;
-      width: min(38vw, 156px);
+      width: min(34vw, 144px);
       aspect-ratio: 1;
       border-radius: 50%;
       border: 1px solid var(--line);
       background:
-        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.10) 0 8%, rgba(255,255,255,0.05) 9% 31%, rgba(0,0,0,0.18) 32% 100%),
-        linear-gradient(180deg, #343449, #242434);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -20px 36px rgba(0,0,0,0.25), 0 14px 36px var(--shadow);
+        radial-gradient(circle at 50% 42%, rgba(255,255,255,0.13) 0 7%, rgba(255,255,255,0.055) 8% 31%, rgba(0,0,0,0.18) 32% 100%),
+        linear-gradient(180deg, #37374d, #232333);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 32px rgba(0,0,0,0.28), 0 12px 30px var(--shadow);
       touch-action: none;
     }
 
@@ -261,13 +275,14 @@
     }
 
     .fire-button {
-      width: min(32vw, 128px);
+      width: min(29vw, 116px);
       aspect-ratio: 1;
       border-radius: 50%;
-      font-size: 1.15rem;
+      font-size: 1.08rem;
       display: grid;
       place-content: center;
-      gap: 2px;
+      gap: 1px;
+      background: radial-gradient(circle at 50% 28%, #4c4c67, #2d2d42 62%, #202032 100%);
     }
 
     .fire-button span {
@@ -278,9 +293,10 @@
 
     .keyboard-toggle,
     .mode-toggle {
-      width: min(34vw, 142px);
-      min-height: 40px;
-      font-size: 0.86rem;
+      width: min(33vw, 138px);
+      min-height: 34px;
+      border-radius: 15px;
+      font-size: 0.80rem;
     }
 
     .hidden-input {
@@ -414,13 +430,21 @@
     }
 
     @media (max-height: 720px) {
-      .app-shell { gap: 6px; padding-top: 6px; }
-      .topbar { min-height: 38px; }
+      .app-shell { gap: 5px; padding-top: 5px; }
+      .topbar { min-height: 34px; }
       .kicker { display: none; }
-      h1 { font-size: 1.65rem; }
-      .play-controls { min-height: 136px; padding: 6px 8px; }
-      .joystick { width: min(34vw, 136px); }
-      .fire-button { width: min(29vw, 110px); }
+      h1 { font-size: 1.52rem; }
+      .play-controls { min-height: 118px; padding: 5px 7px; border-radius: 20px; }
+      .joystick { width: min(31vw, 124px); }
+      .fire-button { width: min(26vw, 98px); }
+      .keyboard-toggle, .mode-toggle { min-height: 31px; font-size: 0.76rem; }
+    }
+
+    @media (display-mode: standalone) {
+      .app-shell {
+        height: 100dvh;
+        min-height: 100dvh;
+      }
     }
 
     @media (orientation: landscape) {
@@ -459,7 +483,7 @@
 
     <section class="screen-area" aria-label="Atari ST emulator screen">
       <div class="screen-wrap" id="screenWrap">
-        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=72" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
+        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=73" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
         <div id="loadingOverlay" class="loading-overlay">
           <strong>TonyST</strong>
           <span id="engineStatus">Starting Hatari WebAssembly</span>
@@ -502,6 +526,7 @@
           <button id="resetButton" type="button">Reset</button>
           <button id="cleanBootButton" type="button">Clean boot</button>
           <button id="fullscreenButton" type="button">Full screen</button>
+          <button id="zoomButton" type="button">Screen: Zoom</button>
           <button id="joyModeButton" type="button">Input: Gamepad</button>
           <button id="quickStartButton" type="button">Send Start</button>
         </div>
@@ -594,9 +619,10 @@
 
   <script>
     (() => {
-      const VERSION = "72";
+      const VERSION = "73";
       const ORIGIN = window.location.origin;
       const frame = document.getElementById("emulatorFrame");
+      const screenWrap = document.getElementById("screenWrap");
       const overlay = document.getElementById("loadingOverlay");
       const engineStatus = document.getElementById("engineStatus");
       const engineLabel = document.getElementById("engineLabel");
@@ -619,6 +645,7 @@
       const modeButton = document.getElementById("modeButton");
       const joyModeButton = document.getElementById("joyModeButton");
       const quickStartButton = document.getElementById("quickStartButton");
+      const zoomButton = document.getElementById("zoomButton");
       const joystickLabel = document.querySelector(".joystick-label");
 
       let diskFile = null;
@@ -630,6 +657,7 @@
       let lastMouseTouch = null;
       let controlMode = localStorage.getItem("tonyst-control-mode") || "joystick";
       let joyInputMode = localStorage.getItem("tonyst-joy-input") || "gamepad";
+      let screenMode = localStorage.getItem("tonyst-screen-mode") || "zoom";
       let currentJoy = { x: 0, y: 0, fire: false };
       const heldButtonKeys = new Set();
       const isTouchDevice = ("ontouchstart" in window) || (navigator.maxTouchPoints || 0) > 0;
@@ -831,6 +859,12 @@
         if (joyModeButton) joyModeButton.textContent = `Input: ${joyInputMode === "gamepad" ? "Gamepad" : "Keys"}`;
       };
 
+      const applyScreenMode = () => {
+        const zoomed = screenMode !== "fit";
+        screenWrap?.classList.toggle("is-zoom", zoomed);
+        if (zoomButton) zoomButton.textContent = zoomed ? "Screen: Zoomed" : "Screen: Fit";
+      };
+
       const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
 
       window.addEventListener("message", (event) => {
@@ -921,6 +955,13 @@
         } catch (_) {
           try { await document.documentElement.requestFullscreen?.(); } catch (_) {}
         }
+      });
+
+      zoomButton?.addEventListener("click", () => {
+        closeMenu();
+        screenMode = screenMode === "fit" ? "zoom" : "fit";
+        localStorage.setItem("tonyst-screen-mode", screenMode);
+        applyScreenMode();
       });
 
       diskInput?.addEventListener("change", () => {
@@ -1074,6 +1115,7 @@
 
       applyControlMode();
       applyJoyModeLabel();
+      applyScreenMode();
       setFileLabel();
       showOverlay("Starting Hatari WebAssembly");
     })();
