@@ -46,7 +46,7 @@
 
   <script>
     (() => {
-      const VERSION = "70";
+      const VERSION = "71";
       const ENGINE_DIR = "engine/hatari";
       const ORIGIN = window.location.origin;
       const canvas = document.getElementById("canvas");
@@ -54,15 +54,19 @@
       let started = false;
 
       const keyMap = {
-        Space: { key: " ", code: "Space", keyCode: 32 },
-        Enter: { key: "Enter", code: "Enter", keyCode: 13 },
-        Backspace: { key: "Backspace", code: "Backspace", keyCode: 8 },
-        Escape: { key: "Escape", code: "Escape", keyCode: 27 },
-        Tab: { key: "Tab", code: "Tab", keyCode: 9 },
-        ArrowUp: { key: "ArrowUp", code: "ArrowUp", keyCode: 38 },
-        ArrowDown: { key: "ArrowDown", code: "ArrowDown", keyCode: 40 },
-        ArrowLeft: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37 },
-        ArrowRight: { key: "ArrowRight", code: "ArrowRight", keyCode: 39 },
+        Space: { key: " ", code: "Space", keyCode: 32, location: 0 },
+        Enter: { key: "Enter", code: "Enter", keyCode: 13, location: 0 },
+        Backspace: { key: "Backspace", code: "Backspace", keyCode: 8, location: 0 },
+        Escape: { key: "Escape", code: "Escape", keyCode: 27, location: 0 },
+        Tab: { key: "Tab", code: "Tab", keyCode: 9, location: 0 },
+        ArrowUp: { key: "ArrowUp", code: "ArrowUp", keyCode: 38, location: 0 },
+        ArrowDown: { key: "ArrowDown", code: "ArrowDown", keyCode: 40, location: 0 },
+        ArrowLeft: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37, location: 0 },
+        ArrowRight: { key: "ArrowRight", code: "ArrowRight", keyCode: 39, location: 0 },
+        ControlRight: { key: "Control", code: "ControlRight", keyCode: 17, location: 2, ctrlKey: true },
+        ControlLeft: { key: "Control", code: "ControlLeft", keyCode: 17, location: 1, ctrlKey: true },
+        ShiftLeft: { key: "Shift", code: "ShiftLeft", keyCode: 16, location: 1, shiftKey: true },
+        ShiftRight: { key: "Shift", code: "ShiftRight", keyCode: 16, location: 2, shiftKey: true },
       };
 
       for (let i = 1; i <= 10; i += 1) keyMap[`F${i}`] = { key: `F${i}`, code: `F${i}`, keyCode: 111 + i };
@@ -84,27 +88,59 @@
 
       const getKeyInfo = (code) => keyMap[code] || { key: code, code, keyCode: 0 };
 
-      const dispatchKeyboard = (target, type, info) => {
-        if (!target) return;
+      const makeKeyboardEvent = (type, info) => {
+        const charCode = type === "keypress" && info.key && info.key.length === 1 ? info.key.charCodeAt(0) : 0;
         const event = new KeyboardEvent(type, {
           key: info.key,
           code: info.code,
-          keyCode: info.keyCode,
-          which: info.keyCode,
+          location: info.location || 0,
+          ctrlKey: Boolean(info.ctrlKey),
+          shiftKey: Boolean(info.shiftKey),
+          altKey: Boolean(info.altKey),
+          metaKey: Boolean(info.metaKey),
           bubbles: true,
           cancelable: true,
           composed: true,
         });
-        target.dispatchEvent(event);
+
+        // Safari and SDL/Emscripten can be fussy about synthetic keyboard events.
+        // These read-only legacy fields are what the Hatari build actually reads.
+        const legacy = {
+          key: info.key,
+          code: info.code,
+          keyCode: info.keyCode || 0,
+          which: info.keyCode || 0,
+          charCode,
+          location: info.location || 0,
+          ctrlKey: Boolean(info.ctrlKey),
+          shiftKey: Boolean(info.shiftKey),
+          altKey: Boolean(info.altKey),
+          metaKey: Boolean(info.metaKey),
+        };
+        Object.entries(legacy).forEach(([name, value]) => {
+          try { Object.defineProperty(event, name, { get: () => value }); } catch (_) {}
+        });
+        return event;
+      };
+
+      const dispatchKeyboard = (target, type, info) => {
+        if (!target) return;
+        target.dispatchEvent(makeKeyboardEvent(type, info));
       };
 
       const sendKey = (code, down) => {
         const info = getKeyInfo(code);
         const type = down ? "keydown" : "keyup";
+        try { window.focus(); } catch (_) {}
         try { canvas.focus(); } catch (_) {}
-        dispatchKeyboard(canvas, type, info);
-        dispatchKeyboard(document, type, info);
-        dispatchKeyboard(window, type, info);
+
+        // Fire the event at every likely SDL target. This is deliberate.
+        [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, type, info));
+
+        // Some ST menus listen for printable keypresses rather than keydown.
+        if (down && info.key && info.key.length === 1) {
+          [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, "keypress", info));
+        }
       };
 
       const safeName = (name, fallback) => {
@@ -126,6 +162,8 @@
           "--statusbar", "false",
           "--memsize", "4",
           "--cpuclock", "16",
+          "--joystick", "1",
+          "--joy1", "keys",
         ];
 
         if (hasDisk) {

@@ -458,7 +458,7 @@
 
     <section class="screen-area" aria-label="Atari ST emulator screen">
       <div class="screen-wrap" id="screenWrap">
-        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=70" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
+        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=71" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
         <div id="loadingOverlay" class="loading-overlay">
           <strong>TonyST</strong>
           <span id="engineStatus">Starting Hatari WebAssembly</span>
@@ -481,7 +481,7 @@
       </div>
 
       <div class="action-wrap">
-        <button class="fire-button" id="fireButton" data-key="Space" type="button">Fire<span>Space</span></button>
+        <button class="fire-button" id="fireButton" data-key="ControlRight" type="button">Fire<span>Joystick</span></button>
         <button class="keyboard-toggle" id="keyboardButton" type="button">⌨ Keyboard</button>
       </div>
     </section>
@@ -504,8 +504,8 @@
 
         <details class="notes" open>
           <summary>Quick help</summary>
-          <p>Use Load game for .st or .msa first. Tap Fire when an intro asks for Space. If a game boots to the Atari desktop, open Disk A.</p>
-          <p>BIOS loading is parked for this build. This version sends the game file directly into Hatari, not through a blob link, so iPhone Safari has less chance to sulk.</p>
+          <p>Use Load game for .st or .msa first. Fire is now mapped to the Atari ST joystick fire button. If an intro specifically asks for Space or Enter, use Keyboard.</p>
+          <p>BIOS loading is parked for this build. This version sends the game file directly into Hatari and enables Hatari keyboard joystick mode for port 1, the usual ST game port.</p>
         </details>
 
         <p class="credit">Uses the Mesmotronic browser Hatari build and the existing engine files in engine/hatari.</p>
@@ -581,6 +581,7 @@
         <button data-key="ArrowUp" type="button">↑</button>
         <button data-key="ArrowDown" type="button">↓</button>
         <button data-key="ArrowRight" type="button">→</button>
+        <button class="key-wide" data-key="ControlRight" type="button">Fire</button>
         <button class="key-space" data-key="Space" type="button">Space</button>
       </div>
     </div>
@@ -588,7 +589,7 @@
 
   <script>
     (() => {
-      const VERSION = "70";
+      const VERSION = "71";
       const ORIGIN = window.location.origin;
       const frame = document.getElementById("emulatorFrame");
       const overlay = document.getElementById("loadingOverlay");
