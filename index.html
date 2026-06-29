@@ -7,19 +7,26 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#101018" />
+  <meta name="theme-color" content="#0e0f17" />
   <style>
     :root {
       color-scheme: dark;
-      --bg: #101018;
-      --panel: rgba(18, 18, 27, 0.94);
-      --line: rgba(255, 255, 255, 0.16);
-      --line-soft: rgba(255, 255, 255, 0.08);
-      --text: #fff;
-      --muted: #aaaab6;
-      --button: #303044;
-      --button-2: #3a3a51;
-      --shadow: rgba(0, 0, 0, 0.48);
+      --bg: #080910;
+      --shell-1: #27273a;
+      --shell-2: #161826;
+      --shell-3: #0f1019;
+      --bezel: #0a0a0f;
+      --line: rgba(255,255,255,0.16);
+      --line-soft: rgba(255,255,255,0.08);
+      --panel: rgba(18,18,28,0.96);
+      --text: #f6f7ff;
+      --muted: #aeb2c5;
+      --shadow: rgba(0,0,0,0.56);
+      --glow: rgba(122, 129, 255, 0.16);
+      --button: #36384d;
+      --button-2: #434664;
+      --accent: #cfd2ff;
+      --success: #86ff7a;
     }
 
     * {
@@ -27,17 +34,18 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: radial-gradient(circle at top left, #262638 0, var(--bg) 40%, #050507 100%);
+      background:
+        radial-gradient(circle at top, rgba(56, 62, 110, 0.30) 0, rgba(18, 20, 33, 0.10) 28%, transparent 46%),
+        linear-gradient(180deg, #0d0f18, var(--bg) 56%, #040507 100%);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      overscroll-behavior: none;
       touch-action: none;
+      overscroll-behavior: none;
     }
 
     body {
@@ -45,87 +53,157 @@
     }
 
     button {
+      appearance: none;
       border: 1px solid var(--line);
-      border-radius: 18px;
-      background: linear-gradient(180deg, var(--button-2), var(--button));
       color: var(--text);
+      background: linear-gradient(180deg, var(--button-2), var(--button));
       font: inherit;
-      font-weight: 850;
+      font-weight: 800;
       cursor: pointer;
       user-select: none;
       touch-action: none;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 26px var(--shadow);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        0 10px 24px var(--shadow);
     }
 
     button:active,
     button.is-pressed {
-      transform: translateY(1px) scale(0.99);
+      transform: translateY(1px) scale(0.985);
       filter: brightness(1.14);
     }
 
-    .app-shell {
-      width: min(960px, 100%);
-      height: 100vh;
+    .app {
+      width: min(100%, 520px);
       height: 100svh;
-      min-height: 100svh;
       margin: 0 auto;
-      padding: 6px 10px max(6px, env(safe-area-inset-bottom));
+      padding: 8px 10px max(10px, env(safe-area-inset-bottom));
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr);
-      gap: 7px;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
     }
 
     .topbar {
-      min-height: 38px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
+      min-height: 44px;
     }
 
-    .kicker {
+    .brand-kicker {
       margin: 0;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.19em;
-      font-size: 0.58rem;
-      line-height: 1.1;
-      white-space: nowrap;
+      letter-spacing: 0.18em;
+      font-size: 0.62rem;
+      line-height: 1.05;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.62rem, 5.8vw, 2.45rem);
-      letter-spacing: -0.055em;
+      font-size: clamp(1.95rem, 6vw, 2.5rem);
+      letter-spacing: -0.06em;
       line-height: 0.92;
     }
 
-    .menu-button,
-    .small-button {
-      min-height: 38px;
-      padding: 0 14px;
-      border-radius: 17px;
+    .menu-button {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 20px;
       white-space: nowrap;
     }
 
-    .screen-area {
+    .console {
       min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 32px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 30%, rgba(0,0,0,0.18) 100%),
+        linear-gradient(180deg, var(--shell-1), var(--shell-2) 54%, var(--shell-3));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -18px 40px rgba(0,0,0,0.22),
+        0 18px 46px rgba(0,0,0,0.54);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .console::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 22%;
+      background: radial-gradient(circle at 50% -10%, rgba(255,255,255,0.18), transparent 58%);
+      pointer-events: none;
+    }
+
+    .screen-module {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #11131a, #09090e 88%);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        inset 0 0 0 1px rgba(0,0,0,0.28),
+        0 12px 28px rgba(0,0,0,0.34);
+    }
+
+    .screen-header {
       display: flex;
-      align-items: start;
-      justify-content: center;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 2px;
+      min-height: 16px;
+    }
+
+    .speaker {
+      display: flex;
+      gap: 3px;
+      opacity: 0.55;
+    }
+
+    .speaker span {
+      width: 16px;
+      height: 2px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      display: block;
+    }
+
+    .status-led {
+      width: 12px;
+      height: 12px;
+      border-radius: 4px;
+      background: linear-gradient(180deg, #a8ff94, #4cb84d);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.34), 0 0 10px rgba(122,255,140,0.35);
+      flex: 0 0 auto;
     }
 
     .screen-wrap {
       position: relative;
       overflow: hidden;
       width: 100%;
-      aspect-ratio: 832 / 588;
+      height: 100%;
       min-height: 0;
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 19px;
-      background: #050506;
-      box-shadow: 0 12px 36px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
-      isolation: isolate;
+      border-radius: 20px;
+      background: #000;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.04),
+        inset 0 14px 24px rgba(255,255,255,0.02),
+        0 0 0 6px rgba(255,255,255,0.02);
+      aspect-ratio: 832 / 588;
+      align-self: center;
     }
 
     .emulator-frame {
@@ -141,7 +219,7 @@
     }
 
     .screen-wrap.is-zoom .emulator-frame {
-      transform: scale(1.075);
+      transform: scale(1.08);
     }
 
     .loading-overlay {
@@ -154,8 +232,8 @@
       padding: 24px;
       text-align: center;
       background: #000;
-      transition: opacity 0.28s ease;
       pointer-events: none;
+      transition: opacity 0.24s ease;
     }
 
     .loading-overlay.is-hidden {
@@ -163,7 +241,8 @@
     }
 
     .loading-overlay strong {
-      font-size: 1.7rem;
+      font-size: 1.75rem;
+      letter-spacing: -0.04em;
     }
 
     .loading-overlay span {
@@ -171,22 +250,14 @@
     }
 
     .screen-status {
-      position: absolute;
-      left: 6px;
-      right: 6px;
-      bottom: 6px;
-      z-index: 3;
       display: flex;
       justify-content: space-between;
       gap: 8px;
       align-items: center;
-      padding: 5px 8px;
-      border: 1px solid var(--line-soft);
-      border-radius: 12px;
-      background: rgba(0,0,0,0.56);
-      color: rgba(225,225,235,0.74);
-      font-size: 0.68rem;
-      backdrop-filter: blur(8px);
+      min-height: 18px;
+      padding: 0 2px;
+      color: rgba(228,230,245,0.72);
+      font-size: 0.70rem;
     }
 
     .screen-status span {
@@ -196,27 +267,33 @@
       white-space: nowrap;
     }
 
-    .play-controls {
-      min-height: 132px;
-      max-height: 178px;
-      padding: 7px 8px 8px;
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(0,0,0,0.24));
-      box-shadow: 0 12px 34px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.05);
+    .controls-module {
       display: grid;
-      grid-template-columns: minmax(138px, 1fr) minmax(118px, 0.72fr);
-      gap: 10px;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: end;
+      gap: 8px;
+      min-height: 174px;
+      padding: 2px 2px 6px;
     }
 
-    .joystick-wrap {
+    .left-bank,
+    .right-bank {
       display: grid;
-      place-items: center;
-      gap: 4px;
+      justify-items: center;
+      gap: 6px;
+      min-width: 0;
     }
 
-    .joystick-label {
+    .center-bank {
+      display: grid;
+      align-content: end;
+      justify-items: center;
+      gap: 8px;
+      padding-bottom: 6px;
+    }
+
+    .pad-label,
+    .button-label {
       color: var(--muted);
       font-size: 0.72rem;
       text-transform: uppercase;
@@ -225,14 +302,17 @@
 
     .joystick {
       position: relative;
-      width: min(34vw, 144px);
+      width: min(36vw, 156px);
       aspect-ratio: 1;
-      border-radius: 50%;
-      border: 1px solid var(--line);
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.14);
       background:
-        radial-gradient(circle at 50% 42%, rgba(255,255,255,0.13) 0 7%, rgba(255,255,255,0.055) 8% 31%, rgba(0,0,0,0.18) 32% 100%),
-        linear-gradient(180deg, #37374d, #232333);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -18px 32px rgba(0,0,0,0.28), 0 12px 30px var(--shadow);
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.11) 0 10%, rgba(255,255,255,0.035) 11% 34%, rgba(0,0,0,0.22) 35% 100%),
+        linear-gradient(180deg, #343850, #212536);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        inset 0 -14px 26px rgba(0,0,0,0.26),
+        0 12px 26px rgba(0,0,0,0.40);
       touch-action: none;
     }
 
@@ -245,58 +325,89 @@
       pointer-events: none;
     }
 
-    .stick-cross.horizontal {
-      width: 62%;
-      height: 8px;
-    }
-
-    .stick-cross.vertical {
-      width: 8px;
-      height: 62%;
-    }
+    .stick-cross.horizontal { width: 65%; height: 9px; }
+    .stick-cross.vertical { width: 9px; height: 65%; }
 
     .stick-thumb {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 42%;
+      width: 43%;
       aspect-ratio: 1;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      background: linear-gradient(180deg, #f5f5ff, #bfc0d6);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 10px 22px rgba(0,0,0,0.55);
+      background: linear-gradient(180deg, #f6f6ff, #c4c7db);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 10px 18px rgba(0,0,0,0.52);
       pointer-events: none;
     }
 
-    .action-wrap {
+    .action-cluster {
       display: grid;
-      gap: 10px;
+      grid-template-columns: auto auto;
+      gap: 12px;
+      align-items: center;
       justify-items: center;
     }
 
-    .fire-button {
-      width: min(29vw, 116px);
-      aspect-ratio: 1;
-      border-radius: 50%;
-      font-size: 1.08rem;
+    .action-button {
       display: grid;
       place-content: center;
-      gap: 1px;
-      background: radial-gradient(circle at 50% 28%, #4c4c67, #2d2d42 62%, #202032 100%);
+      border-radius: 50%;
+      background: radial-gradient(circle at 48% 26%, #515576, #2c2f46 66%, #202334 100%);
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.12),
+        0 12px 28px rgba(0,0,0,0.42);
+      text-align: center;
+      line-height: 1;
     }
 
-    .fire-button span {
+    .action-button strong {
+      display: block;
+      font-size: 1.18rem;
+      letter-spacing: -0.04em;
+    }
+
+    .action-button span {
+      display: block;
+      margin-top: 5px;
       color: var(--muted);
-      font-size: 0.72rem;
-      font-weight: 750;
+      font-size: 0.70rem;
+      font-weight: 800;
     }
 
-    .keyboard-toggle,
-    .mode-toggle {
-      width: min(33vw, 138px);
+    .action-a {
+      width: min(27vw, 116px);
+      aspect-ratio: 1;
+    }
+
+    .action-b {
+      width: min(20vw, 82px);
+      aspect-ratio: 1;
+      align-self: start;
+      margin-top: 26px;
+    }
+
+    .small-pills {
+      display: grid;
+      gap: 8px;
+      justify-items: center;
+      width: 100%;
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .mini-pill {
       min-height: 34px;
-      border-radius: 15px;
-      font-size: 0.80rem;
+      padding: 0 14px;
+      border-radius: 17px;
+      font-size: 0.82rem;
+      white-space: nowrap;
     }
 
     .hidden-input {
@@ -310,11 +421,11 @@
     .drawer-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 20;
-      background: rgba(0,0,0,0.50);
+      z-index: 30;
+      background: rgba(0,0,0,0.56);
       display: grid;
       place-items: end center;
-      padding: 12px;
+      padding: 10px;
     }
 
     .drawer-backdrop[hidden],
@@ -323,28 +434,34 @@
     }
 
     .drawer {
-      width: min(620px, 100%);
-      max-height: min(82dvh, 620px);
+      width: min(100%, 520px);
+      max-height: min(82dvh, 680px);
       overflow: auto;
       padding: 16px;
       border: 1px solid var(--line);
       border-radius: 24px;
-      background: linear-gradient(180deg, rgba(31,31,45,0.98), rgba(10,10,14,0.98));
-      box-shadow: 0 18px 55px rgba(0,0,0,0.65);
+      background: linear-gradient(180deg, rgba(34,36,52,0.98), rgba(10,11,16,0.98));
+      box-shadow: 0 18px 50px rgba(0,0,0,0.70);
     }
 
     .drawer-head {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
       align-items: center;
+      gap: 12px;
       margin-bottom: 14px;
     }
 
     .drawer-head h2 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       letter-spacing: -0.04em;
+    }
+
+    .small-button {
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 16px;
     }
 
     .menu-grid {
@@ -356,17 +473,18 @@
     .menu-grid button {
       min-height: 58px;
       padding: 8px;
+      border-radius: 18px;
     }
 
     .notes {
       margin-top: 14px;
       color: var(--muted);
-      line-height: 1.35;
+      line-height: 1.36;
     }
 
     .notes summary {
-      color: #fff;
-      font-weight: 850;
+      color: var(--text);
+      font-weight: 800;
       cursor: pointer;
     }
 
@@ -374,7 +492,7 @@
       margin: 14px 0 0;
       color: var(--muted);
       font-size: 0.78rem;
-      line-height: 1.35;
+      line-height: 1.36;
     }
 
     .keyboard-panel {
@@ -382,14 +500,14 @@
       left: 8px;
       right: 8px;
       bottom: calc(env(safe-area-inset-bottom) + 8px);
-      z-index: 30;
+      z-index: 40;
       max-height: 54dvh;
       overflow: auto;
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 22px;
       background: linear-gradient(180deg, rgba(30,30,44,0.98), rgba(8,8,12,0.98));
-      box-shadow: 0 18px 55px rgba(0,0,0,0.7);
+      box-shadow: 0 18px 55px rgba(0,0,0,0.72);
     }
 
     .keyboard-head {
@@ -408,9 +526,7 @@
       scrollbar-width: none;
     }
 
-    .key-row::-webkit-scrollbar {
-      display: none;
-    }
+    .key-row::-webkit-scrollbar { display: none; }
 
     .key-row button {
       flex: 0 0 auto;
@@ -421,103 +537,126 @@
       font-size: 0.88rem;
     }
 
-    .key-row button.key-wide {
-      min-width: 74px;
+    .key-row button.key-wide { min-width: 74px; }
+    .key-row button.key-space { min-width: 160px; }
+
+    .mode-active {
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 1px rgba(120,128,255,0.20), 0 10px 24px rgba(0,0,0,0.48);
+      background: linear-gradient(180deg, #4f5476, #373c57);
     }
 
-    .key-row button.key-space {
-      min-width: 160px;
-    }
-
-    @media (max-height: 720px) {
-      .app-shell { gap: 5px; padding-top: 5px; }
-      .topbar { min-height: 34px; }
-      .kicker { display: none; }
-      h1 { font-size: 1.52rem; }
-      .play-controls { min-height: 118px; padding: 5px 7px; border-radius: 20px; }
-      .joystick { width: min(31vw, 124px); }
-      .fire-button { width: min(26vw, 98px); }
-      .keyboard-toggle, .mode-toggle { min-height: 31px; font-size: 0.76rem; }
+    @media (max-height: 760px) {
+      .app { gap: 6px; padding-top: 6px; }
+      .brand-kicker { display: none; }
+      h1 { font-size: 1.8rem; }
+      .console { padding: 8px; border-radius: 28px; }
+      .controls-module { min-height: 156px; }
+      .joystick { width: min(32vw, 136px); }
+      .action-a { width: min(24vw, 100px); }
+      .action-b { width: min(18vw, 72px); }
+      .mini-pill { min-height: 32px; padding: 0 12px; font-size: 0.78rem; }
+      .screen-status { font-size: 0.65rem; }
     }
 
     @media (display-mode: standalone) {
-      .app-shell {
-        height: 100dvh;
-        min-height: 100dvh;
-      }
+      .app { height: 100dvh; }
     }
 
     @media (orientation: landscape) {
-      .app-shell {
+      .app {
+        width: min(100%, 920px);
         grid-template-rows: auto minmax(0, 1fr);
-        grid-template-columns: minmax(0, 1fr) 230px;
-        grid-template-areas:
-          "top top"
-          "screen controls";
       }
-
-      .topbar { grid-area: top; }
-      .screen-area { grid-area: screen; }
-      .play-controls {
-        grid-area: controls;
+      .console {
+        grid-template-columns: minmax(0, 1fr) 280px;
+        grid-template-rows: 1fr;
+        align-items: stretch;
+      }
+      .screen-module { min-height: 0; }
+      .controls-module {
         min-height: 0;
-        height: 100%;
         grid-template-columns: 1fr;
-        align-content: center;
+        grid-template-rows: auto auto auto;
+        align-items: center;
+        justify-items: center;
       }
-
-      .joystick { width: min(26vw, 150px); }
-      .fire-button { width: min(22vw, 116px); }
+      .center-bank { order: 3; }
+      .right-bank { order: 2; }
+      .joystick { width: min(24vw, 144px); }
+      .action-cluster { grid-template-columns: auto auto; }
     }
   </style>
 </head>
 <body>
-  <main class="app-shell">
+  <main class="app">
     <header class="topbar">
       <div>
-        <p class="kicker">Atari ST on iPhone</p>
+        <p class="brand-kicker">Atari ST on iPhone</p>
         <h1>TonyST</h1>
       </div>
       <button class="menu-button" id="menuButton" type="button">☰ Menu</button>
     </header>
 
-    <section class="screen-area" aria-label="Atari ST emulator screen">
-      <div class="screen-wrap" id="screenWrap">
-        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=73" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
-        <div id="loadingOverlay" class="loading-overlay">
-          <strong>TonyST</strong>
-          <span id="engineStatus">Starting Hatari WebAssembly</span>
+    <section class="console" aria-label="TonyST handheld console shell">
+      <section class="screen-module" aria-label="Atari ST screen">
+        <div class="screen-header" aria-hidden="true">
+          <div class="speaker"><span></span><span></span><span></span></div>
+          <div class="status-led"></div>
         </div>
+
+        <div class="screen-wrap is-zoom" id="screenWrap">
+          <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=74" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
+          <div id="loadingOverlay" class="loading-overlay">
+            <strong>TonyST</strong>
+            <span id="engineStatus">Starting Hatari WebAssembly</span>
+          </div>
+        </div>
+
         <div class="screen-status">
           <span id="engineLabel">Engine, starting</span>
           <span id="fileLabel">Built in boot</span>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="play-controls" aria-label="TonyST controls">
-      <div class="joystick-wrap">
-        <div class="joystick-label">Joystick</div>
-        <div class="joystick" id="joystick" role="application" aria-label="Joystick">
-          <span class="stick-cross horizontal"></span>
-          <span class="stick-cross vertical"></span>
-          <span class="stick-thumb" id="stickThumb"></span>
+      <section class="controls-module" aria-label="Controls">
+        <div class="left-bank">
+          <div class="pad-label" id="joystickLabel">Joystick</div>
+          <div class="joystick" id="joystick" role="application" aria-label="Joystick or mouse pad">
+            <span class="stick-cross horizontal"></span>
+            <span class="stick-cross vertical"></span>
+            <span class="stick-thumb" id="stickThumb"></span>
+          </div>
         </div>
-      </div>
 
-      <div class="action-wrap">
-        <button class="fire-button" id="fireButton" data-key="ControlRight" type="button">Fire<span id="fireSubLabel">Joystick</span></button>
-        <button class="mode-toggle" id="modeButton" type="button">🖱 Mouse</button>
-        <button class="keyboard-toggle" id="keyboardButton" type="button">⌨ Keyboard</button>
-      </div>
+        <div class="center-bank">
+          <div class="small-pills">
+            <div class="pill-row">
+              <button class="mini-pill mode-active" id="mouseModeButton" type="button">🕹 Joystick</button>
+              <button class="mini-pill" id="keyboardButton" type="button">⌨ Keyboard</button>
+            </div>
+            <div class="pill-row">
+              <button class="mini-pill" id="quickStartButtonVisible" type="button">Start</button>
+              <button class="mini-pill" id="resetButtonVisible" type="button">Reset</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="right-bank">
+          <div class="button-label">Buttons</div>
+          <div class="action-cluster">
+            <button class="action-button action-b" id="startButton" data-sequence="Start" type="button"><strong>B</strong><span>Start</span></button>
+            <button class="action-button action-a" id="fireButton" data-key="ControlRight" type="button"><strong>A</strong><span id="fireSubLabel">Fire</span></button>
+          </div>
+        </div>
+      </section>
     </section>
 
     <input id="diskInput" class="hidden-input" type="file" />
 
     <div class="drawer-backdrop" id="menuBackdrop" hidden>
-      <aside class="drawer" aria-label="Menu">
+      <aside class="drawer" aria-label="TonyST menu">
         <div class="drawer-head">
-          <h2>Menu</h2>
+          <h2>TonyST Menu</h2>
           <button class="small-button" id="closeMenuButton" type="button">Close</button>
         </div>
 
@@ -526,18 +665,19 @@
           <button id="resetButton" type="button">Reset</button>
           <button id="cleanBootButton" type="button">Clean boot</button>
           <button id="fullscreenButton" type="button">Full screen</button>
-          <button id="zoomButton" type="button">Screen: Zoom</button>
+          <button id="zoomButton" type="button">Screen: Zoomed</button>
           <button id="joyModeButton" type="button">Input: Gamepad</button>
           <button id="quickStartButton" type="button">Send Start</button>
+          <button id="toggleMouseMenuButton" type="button">Switch to Mouse</button>
         </div>
 
         <details class="notes" open>
           <summary>Quick help</summary>
-          <p>Use Load game for .st or .msa first. Fire is joystick fire in joystick mode, and left mouse click in mouse mode. If a title screen wants Space, Enter or F1, use Keyboard or Send Start.</p>
-          <p>The Input button switches between virtual Gamepad and keyboard joystick mode, then reloads the emulator. Gamepad is the default because iPhone Safari is fussy with fake keyboard events.</p>
+          <p>A is Fire in joystick mode, and left click in mouse mode. B and Start send the built in start sequence for awkward intros. Keyboard is there for Space, Enter, F keys and typing.</p>
+          <p>Use Load game for .st, .msa or .stx first. Screen mode toggles zoom if a game looks cropped. Input: Gamepad keeps joystick support steadier on iPhone.</p>
         </details>
 
-        <p class="credit">Uses the Mesmotronic browser Hatari build and the existing engine files in engine/hatari.</p>
+        <p class="credit">Uses the existing Hatari engine files in engine/hatari and the Mesmotronic browser Hatari build as the working base.</p>
       </aside>
     </div>
 
@@ -619,7 +759,7 @@
 
   <script>
     (() => {
-      const VERSION = "73";
+      const VERSION = "74";
       const ORIGIN = window.location.origin;
       const frame = document.getElementById("emulatorFrame");
       const screenWrap = document.getElementById("screenWrap");
@@ -630,6 +770,7 @@
       const diskInput = document.getElementById("diskInput");
       const loadGameButton = document.getElementById("loadGameButton");
       const resetButton = document.getElementById("resetButton");
+      const resetButtonVisible = document.getElementById("resetButtonVisible");
       const cleanBootButton = document.getElementById("cleanBootButton");
       const fullscreenButton = document.getElementById("fullscreenButton");
       const menuButton = document.getElementById("menuButton");
@@ -642,11 +783,14 @@
       const stickThumb = document.getElementById("stickThumb");
       const fireButton = document.getElementById("fireButton");
       const fireSubLabel = document.getElementById("fireSubLabel");
-      const modeButton = document.getElementById("modeButton");
+      const modeButton = document.getElementById("mouseModeButton");
+      const toggleMouseMenuButton = document.getElementById("toggleMouseMenuButton");
       const joyModeButton = document.getElementById("joyModeButton");
       const quickStartButton = document.getElementById("quickStartButton");
+      const quickStartButtonVisible = document.getElementById("quickStartButtonVisible");
       const zoomButton = document.getElementById("zoomButton");
-      const joystickLabel = document.querySelector(".joystick-label");
+      const joystickLabel = document.getElementById("joystickLabel");
+      const startButton = document.getElementById("startButton");
 
       let diskFile = null;
       let diskName = "";
@@ -684,14 +828,9 @@
         setFileLabel();
       };
 
-      const hideOverlay = () => {
-        overlay?.classList.add("is-hidden");
-      };
+      const hideOverlay = () => overlay?.classList.add("is-hidden");
 
-      const closeMenu = () => {
-        if (menuBackdrop) menuBackdrop.hidden = true;
-      };
-
+      const closeMenu = () => { if (menuBackdrop) menuBackdrop.hidden = true; };
       const openMenu = () => {
         if (keyboardPanel) keyboardPanel.hidden = true;
         if (menuBackdrop) menuBackdrop.hidden = false;
@@ -710,17 +849,15 @@
         if (!frame?.contentWindow || !childReady) return;
         const myToken = bootToken;
         const payload = { type: "tonyst-start", version: VERSION, bootToken: myToken, diskName: diskName || "", joyMode: joyInputMode };
-
         if (diskFile) {
           status("Engine, loading", "Reading selected game file");
           try {
             payload.diskBytes = await diskFile.arrayBuffer();
-          } catch (err) {
+          } catch (_) {
             status("File error", "Could not read the selected game file");
             return;
           }
         }
-
         if (myToken !== bootToken) return;
         status("Engine, loading", diskName ? "Sending game to Hatari" : "Starting Hatari");
         frame.contentWindow.postMessage(payload, ORIGIN);
@@ -730,49 +867,24 @@
         try { frame?.contentWindow?.postMessage(message, ORIGIN); } catch (_) {}
       };
 
-      const sendKey = (code, down) => {
-        postToChild({ type: "tonyst-key", code, down: Boolean(down) });
-      };
-
-      const sendSequence = (name) => {
-        postToChild({ type: "tonyst-sequence", name });
-      };
-
-      const sendJoy = () => {
-        postToChild({ type: "tonyst-joy", axisX: currentJoy.x, axisY: currentJoy.y, fire: currentJoy.fire });
-      };
-
-      const setJoyAxes = (x, y) => {
-        currentJoy.x = x;
-        currentJoy.y = y;
-        sendJoy();
-      };
-
-      const setJoyFire = (down) => {
-        currentJoy.fire = Boolean(down);
-        sendJoy();
-      };
-
-      const sendMouseMove = (dx, dy) => {
-        postToChild({ type: "tonyst-mouse-move", dx, dy });
-      };
-
-      const sendMouseButton = (down, button = 0) => {
-        postToChild({ type: "tonyst-mouse-button", button, down: Boolean(down) });
-      };
+      const sendKey = (code, down) => postToChild({ type: "tonyst-key", code, down: Boolean(down) });
+      const sendSequence = (name) => postToChild({ type: "tonyst-sequence", name });
+      const sendJoy = () => postToChild({ type: "tonyst-joy", axisX: currentJoy.x, axisY: currentJoy.y, fire: currentJoy.fire });
+      const setJoyAxes = (x, y) => { currentJoy.x = x; currentJoy.y = y; sendJoy(); };
+      const setJoyFire = (down) => { currentJoy.fire = Boolean(down); sendJoy(); };
+      const sendMouseMove = (dx, dy) => postToChild({ type: "tonyst-mouse-move", dx, dy });
+      const sendMouseButton = (down, button = 0) => postToChild({ type: "tonyst-mouse-button", button, down: Boolean(down) });
 
       function holdButtonKey(code) {
         if (heldButtonKeys.has(code)) return;
         heldButtonKeys.add(code);
         sendKey(code, true);
       }
-
       function releaseButtonKey(code) {
         if (!heldButtonKeys.has(code)) return;
         heldButtonKeys.delete(code);
         sendKey(code, false);
       }
-
       function releaseHeldButtons() {
         Array.from(heldButtonKeys).forEach((code) => releaseButtonKey(code));
         setJoyFire(false);
@@ -807,19 +919,17 @@
         const cy = rect.top + rect.height / 2;
         const rawX = clientX - cx;
         const rawY = clientY - cy;
-        const max = rect.width * 0.28;
+        const max = rect.width * 0.29;
         const distance = Math.hypot(rawX, rawY);
         const scale = distance > max ? max / distance : 1;
         const x = rawX * scale;
         const y = rawY * scale;
         const dead = rect.width * 0.12;
         const next = new Set();
-
         if (rawX < -dead) next.add("ArrowLeft");
         if (rawX > dead) next.add("ArrowRight");
         if (rawY < -dead) next.add("ArrowUp");
         if (rawY > dead) next.add("ArrowDown");
-
         stickThumb.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         setJoystickKeys(next);
       };
@@ -836,7 +946,6 @@
         const dy = (clientY - lastMouseTouch.y) * 1.45;
         lastMouseTouch = { x: clientX, y: clientY };
         if (Math.abs(dx) > 0 || Math.abs(dy) > 0) sendMouseMove(dx, dy);
-
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;
         const max = rect.width * 0.22;
@@ -848,9 +957,12 @@
       const applyControlMode = () => {
         const mouse = controlMode === "mouse";
         if (joystickLabel) joystickLabel.textContent = mouse ? "Mouse pad" : "Joystick";
-        if (fireSubLabel) fireSubLabel.textContent = mouse ? "Left click" : "Joystick";
-        if (modeButton) modeButton.textContent = mouse ? "🎮 Joystick" : "🖱 Mouse";
-        if (fireButton) fireButton.firstChild.nodeValue = mouse ? "Click" : "Fire";
+        if (fireSubLabel) fireSubLabel.textContent = mouse ? "Click" : "Fire";
+        if (modeButton) {
+          modeButton.textContent = mouse ? "🖱 Mouse" : "🕹 Joystick";
+          modeButton.classList.toggle("mode-active", true);
+        }
+        if (toggleMouseMenuButton) toggleMouseMenuButton.textContent = mouse ? "Switch to Joystick" : "Switch to Mouse";
         releaseJoystick();
         releaseHeldButtons();
       };
@@ -870,52 +982,43 @@
       window.addEventListener("message", (event) => {
         if (event.origin !== ORIGIN) return;
         const data = event.data || {};
-
         if (data.type === "tonyst-ready") {
           childReady = true;
           sendStartToChild();
         }
-
-        if (data.type === "tonyst-status") {
-          status(data.label || "Engine, loading", data.detail || "Hatari working");
-        }
-
+        if (data.type === "tonyst-status") status(data.label || "Engine, loading", data.detail || "Hatari working");
         if (data.type === "tonyst-loaded") {
           status("Engine, loaded", data.detail || "Hatari ready");
           setFileLabel();
           hideOverlay();
         }
-
         if (data.type === "tonyst-error") {
           status(data.label || "Engine, error", data.detail || "Hatari error");
           setTimeout(hideOverlay, 1400);
         }
       });
 
-      frame?.addEventListener("load", () => {
-        window.setTimeout(sendStartToChild, 120);
-      });
+      frame?.addEventListener("load", () => { window.setTimeout(sendStartToChild, 120); });
 
       menuButton?.addEventListener("click", openMenu);
       closeMenuButton?.addEventListener("click", closeMenu);
-      menuBackdrop?.addEventListener("click", (event) => {
-        if (event.target === menuBackdrop) closeMenu();
-      });
+      menuBackdrop?.addEventListener("click", (event) => { if (event.target === menuBackdrop) closeMenu(); });
 
       keyboardButton?.addEventListener("click", () => {
         closeMenu();
-        if (keyboardPanel) keyboardPanel.hidden = !keyboardPanel.hidden;
+        keyboardPanel.hidden = !keyboardPanel.hidden;
       });
+      closeKeyboardButton?.addEventListener("click", () => { keyboardPanel.hidden = true; });
 
-      closeKeyboardButton?.addEventListener("click", () => {
-        if (keyboardPanel) keyboardPanel.hidden = true;
-      });
-
-      modeButton?.addEventListener("click", () => {
+      const toggleControlMode = () => {
         controlMode = controlMode === "mouse" ? "joystick" : "mouse";
         localStorage.setItem("tonyst-control-mode", controlMode);
         applyControlMode();
-      });
+        closeMenu();
+      };
+
+      modeButton?.addEventListener("click", toggleControlMode);
+      toggleMouseMenuButton?.addEventListener("click", toggleControlMode);
 
       joyModeButton?.addEventListener("click", () => {
         closeMenu();
@@ -925,21 +1028,12 @@
         reloadFrame();
       });
 
-      quickStartButton?.addEventListener("click", () => {
-        closeMenu();
-        sendSequence("Start");
-      });
+      quickStartButton?.addEventListener("click", () => { closeMenu(); sendSequence("Start"); });
+      quickStartButtonVisible?.addEventListener("click", () => sendSequence("Start"));
 
-      loadGameButton?.addEventListener("click", () => {
-        closeMenu();
-        diskInput?.click();
-      });
-
-      resetButton?.addEventListener("click", () => {
-        closeMenu();
-        reloadFrame();
-      });
-
+      loadGameButton?.addEventListener("click", () => { closeMenu(); diskInput?.click(); });
+      resetButton?.addEventListener("click", () => { closeMenu(); reloadFrame(); });
+      resetButtonVisible?.addEventListener("click", () => reloadFrame());
       cleanBootButton?.addEventListener("click", () => {
         closeMenu();
         diskFile = null;
@@ -976,7 +1070,7 @@
         joystick.addEventListener("touchstart", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (keyboardPanel) keyboardPanel.hidden = true;
+          keyboardPanel.hidden = true;
           if (activeJoyTouchId !== null || !event.changedTouches.length) return;
           const touch = event.changedTouches[0];
           activeJoyTouchId = touch.identifier;
@@ -1008,19 +1102,17 @@
         joystick.addEventListener("pointerdown", (event) => {
           event.preventDefault();
           event.stopPropagation();
-          if (keyboardPanel) keyboardPanel.hidden = true;
+          keyboardPanel.hidden = true;
           joystick.setPointerCapture?.(event.pointerId);
           if (controlMode === "mouse") updateMousePadFromPoint(event.clientX, event.clientY, true);
           else updateJoystickFromPoint(event.clientX, event.clientY);
         });
-
         joystick.addEventListener("pointermove", (event) => {
           if (!joystick.hasPointerCapture?.(event.pointerId)) return;
           event.preventDefault();
           if (controlMode === "mouse") updateMousePadFromPoint(event.clientX, event.clientY, false);
           else updateJoystickFromPoint(event.clientX, event.clientY);
         });
-
         ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
           joystick.addEventListener(type, (event) => {
             event.preventDefault();
@@ -1045,7 +1137,6 @@
             return;
           }
           setJoyFire(down);
-          // Keyboard fallback for Hatari's cursor-key joystick mode.
           if (code) sendKey(code, down);
           return;
         }
@@ -1060,7 +1151,6 @@
 
         if (isTouchDevice) {
           const activeTouches = new Set();
-
           button.addEventListener("touchstart", (event) => {
             event.preventDefault();
             event.stopPropagation();

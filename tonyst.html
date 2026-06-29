@@ -48,7 +48,7 @@
 
   <script>
     (() => {
-      const VERSION = "73";
+      const VERSION = "74";
       const ENGINE_DIR = "engine/hatari";
       const ORIGIN = window.location.origin;
       const canvas = document.getElementById("canvas");
@@ -65,7 +65,6 @@
       function cloneButton(button) {
         return { pressed: Boolean(button.pressed), touched: Boolean(button.touched), value: Number(button.value || 0) };
       }
-
       function makeVirtualGamepad() {
         virtualPad.timestamp = performance.now();
         return {
@@ -78,7 +77,6 @@
           buttons: virtualPad.buttons.map(cloneButton),
         };
       }
-
       function installVirtualGamepad() {
         try {
           Object.defineProperty(navigator, "getGamepads", {
@@ -88,7 +86,6 @@
         } catch (_) {
           try { navigator.getGamepads = () => [makeVirtualGamepad()]; } catch (_) {}
         }
-
         setTimeout(() => {
           try {
             const event = new Event("gamepadconnected");
@@ -97,7 +94,6 @@
           } catch (_) {}
         }, 250);
       }
-
       installVirtualGamepad();
 
       const keyMap = {
@@ -115,7 +111,6 @@
         ShiftLeft: { key: "Shift", code: "ShiftLeft", keyCode: 16, location: 1, shiftKey: true },
         ShiftRight: { key: "Shift", code: "ShiftRight", keyCode: 16, location: 2, shiftKey: true },
       };
-
       for (let i = 1; i <= 10; i += 1) keyMap[`F${i}`] = { key: `F${i}`, code: `F${i}`, keyCode: 111 + i };
       for (let i = 0; i <= 9; i += 1) keyMap[`Digit${i}`] = { key: String(i), code: `Digit${i}`, keyCode: 48 + i };
       "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach((letter) => {
@@ -123,16 +118,12 @@
       });
 
       const sendParent = (type, label, detail) => {
-        try {
-          parent.postMessage({ type, label, detail }, ORIGIN);
-        } catch (_) {}
+        try { parent.postMessage({ type, label, detail }, ORIGIN); } catch (_) {}
       };
-
       const setBootMessage = (text) => {
         const span = bootMessage?.querySelector("span");
         if (span && text) span.textContent = text;
       };
-
       const getKeyInfo = (code) => keyMap[code] || { key: code, code, keyCode: 0 };
 
       const makeKeyboardEvent = (type, info) => {
@@ -149,9 +140,6 @@
           cancelable: true,
           composed: true,
         });
-
-        // Safari and SDL/Emscripten can be fussy about synthetic keyboard events.
-        // These read-only legacy fields are what the Hatari build actually reads.
         const legacy = {
           key: info.key,
           code: info.code,
@@ -175,22 +163,19 @@
         target.dispatchEvent(makeKeyboardEvent(type, info));
       };
 
-      const makePlainEvent = (type, fields) => {
-        const event = {
-          type,
-          timeStamp: performance.now(),
-          bubbles: true,
-          cancelable: true,
-          defaultPrevented: false,
-          preventDefault() { this.defaultPrevented = true; },
-          stopPropagation() {},
-          stopImmediatePropagation() {},
-          target: canvas,
-          currentTarget: canvas,
-          ...fields,
-        };
-        return event;
-      };
+      const makePlainEvent = (type, fields) => ({
+        type,
+        timeStamp: performance.now(),
+        bubbles: true,
+        cancelable: true,
+        defaultPrevented: false,
+        preventDefault() { this.defaultPrevented = true; },
+        stopPropagation() {},
+        stopImmediatePropagation() {},
+        target: canvas,
+        currentTarget: canvas,
+        ...fields,
+      });
 
       const callJSEventHandlers = (type, event) => {
         const handlers = Array.isArray(window.JSEvents?.eventHandlers) ? window.JSEvents.eventHandlers : [];
@@ -205,7 +190,6 @@
       const sendKey = (code, down) => {
         const info = getKeyInfo(code);
         const type = down ? "keydown" : "keyup";
-        const charCode = type === "keypress" && info.key && info.key.length === 1 ? info.key.charCodeAt(0) : 0;
         const plain = makePlainEvent(type, {
           key: info.key,
           code: info.code,
@@ -226,9 +210,7 @@
         try { canvas.focus(); } catch (_) {}
 
         const direct = callJSEventHandlers(type, plain);
-        if (!direct) {
-          [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, type, info));
-        }
+        if (!direct) [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, type, info));
 
         if (down && info.key && info.key.length === 1) {
           const press = makePlainEvent("keypress", {
@@ -246,9 +228,7 @@
             char: info.key,
             locale: "",
           });
-          if (!callJSEventHandlers("keypress", press)) {
-            [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, "keypress", info));
-          }
+          if (!callJSEventHandlers("keypress", press)) [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, "keypress", info));
         }
       };
 
@@ -256,7 +236,6 @@
         sendKey(code, true);
         setTimeout(() => sendKey(code, false), duration);
       };
-
       const sendStartSequence = () => {
         ["ControlRight", "Space", "Enter", "F1", "Digit1"].forEach((code, index) => {
           setTimeout(() => tapKey(code, 80), index * 115);
@@ -339,7 +318,6 @@
         const hasDisk = startData.diskBytes && startData.diskBytes.byteLength;
         const diskFilename = safeName(startData.diskName || "disk.st", "disk.st");
         const diskPath = `/tonyst/${diskFilename}`;
-
         joyMode = startData.joyMode || "gamepad";
         updateVirtualJoy(0, 0, false);
 
@@ -351,17 +329,11 @@
           "--cpuclock", "16",
         ];
 
-        if (joyMode === "keys") {
-          args.push("--joystick", "1", "--joy1", "keys");
-        } else {
-          args.push("--joy1", "real");
-        }
+        if (joyMode === "keys") args.push("--joystick", "1", "--joy1", "keys");
+        else args.push("--joy1", "real");
 
-        if (hasDisk) {
-          args.push("--disk-a", diskPath);
-        } else {
-          args.push("-d", "/share/hatari/fs/");
-        }
+        if (hasDisk) args.push("--disk-a", diskPath);
+        else args.push("-d", "/share/hatari/fs/");
 
         const moduleObject = {
           preRun: [function () {
@@ -393,9 +365,7 @@
           },
           monitorRunDependencies: function (remaining) {
             this.totalDependencies = Math.max(this.totalDependencies, remaining);
-            const message = remaining
-              ? "Preparing... (" + (this.totalDependencies - remaining) + "/" + this.totalDependencies + ")"
-              : "All downloads complete.";
+            const message = remaining ? "Preparing... (" + (this.totalDependencies - remaining) + "/" + this.totalDependencies + ")" : "All downloads complete.";
             this.setStatus(message);
           },
         };
@@ -444,31 +414,12 @@
       window.addEventListener("message", (event) => {
         if (event.origin !== ORIGIN) return;
         const data = event.data || {};
-
-        if (data.type === "tonyst-start") {
-          startHatari(data);
-        }
-
-        if (data.type === "tonyst-key") {
-          sendKey(data.code, Boolean(data.down));
-        }
-
-        if (data.type === "tonyst-sequence") {
-          sendStartSequence();
-        }
-
-        if (data.type === "tonyst-joy") {
-          updateVirtualJoy(data.axisX, data.axisY, Boolean(data.fire));
-        }
-
-        if (data.type === "tonyst-mouse-move") {
-          moveVirtualMouse(Number(data.dx || 0), Number(data.dy || 0));
-        }
-
-        if (data.type === "tonyst-mouse-button") {
-          setVirtualMouseButton(Boolean(data.down), Number(data.button || 0));
-        }
-
+        if (data.type === "tonyst-start") startHatari(data);
+        if (data.type === "tonyst-key") sendKey(data.code, Boolean(data.down));
+        if (data.type === "tonyst-sequence") sendStartSequence();
+        if (data.type === "tonyst-joy") updateVirtualJoy(data.axisX, data.axisY, Boolean(data.fire));
+        if (data.type === "tonyst-mouse-move") moveVirtualMouse(Number(data.dx || 0), Number(data.dy || 0));
+        if (data.type === "tonyst-mouse-button") setVirtualMouseButton(Boolean(data.down), Number(data.button || 0));
         if (data.type === "tonyst-pause") {
           try {
             if (data.paused && typeof window.Module?.pauseMainLoop === "function") window.Module.pauseMainLoop();
@@ -480,9 +431,7 @@
       if (window.self !== window.top) {
         try {
           parent.document.addEventListener("fullscreenchange", () => {
-            parent.document.fullscreenElement === window.frameElement
-              ? document.documentElement.classList.add("fullscreen")
-              : document.documentElement.classList.remove("fullscreen");
+            parent.document.fullscreenElement === window.frameElement ? document.documentElement.classList.add("fullscreen") : document.documentElement.classList.remove("fullscreen");
           });
         } catch (_) {}
       } else {
