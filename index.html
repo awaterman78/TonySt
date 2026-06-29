@@ -590,6 +590,216 @@
         height: 100dvh;
       }
     }
+  
+    /* TonyST v0.7.7, screen-first handheld override.
+       This removes the giant dead middle area and keeps the controls directly under the screen. */
+    .app {
+      width: 100% !important;
+      max-width: 520px !important;
+      padding: 5px 5px max(6px, env(safe-area-inset-bottom)) !important;
+      gap: 5px !important;
+    }
+
+    .topbar {
+      min-height: 36px !important;
+    }
+
+    .brand-kicker {
+      font-size: 0.52rem !important;
+      letter-spacing: 0.16em !important;
+    }
+
+    h1 {
+      font-size: clamp(1.72rem, 5.5vw, 2.18rem) !important;
+    }
+
+    .menu-button {
+      min-height: 36px !important;
+      padding: 0 13px !important;
+      border-radius: 17px !important;
+    }
+
+    .console {
+      grid-template-rows: auto auto !important;
+      align-content: start !important;
+      gap: 7px !important;
+      padding: 6px !important;
+      border-radius: 27px !important;
+      min-height: 0 !important;
+      height: auto !important;
+      max-height: calc(100svh - 48px - env(safe-area-inset-bottom)) !important;
+    }
+
+    .screen-module {
+      padding: 5px !important;
+      gap: 4px !important;
+      border-radius: 21px !important;
+      min-height: 0 !important;
+      align-self: start !important;
+    }
+
+    .screen-header {
+      height: 10px !important;
+      min-height: 10px !important;
+    }
+
+    .speaker span {
+      width: 15px !important;
+      height: 2px !important;
+    }
+
+    .status-led {
+      width: 10px !important;
+      height: 10px !important;
+      border-radius: 4px !important;
+    }
+
+    .screen-wrap {
+      width: 100% !important;
+      aspect-ratio: 832 / 588 !important;
+      height: auto !important;
+      max-height: none !important;
+      border-radius: 15px !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.04),
+        0 0 0 3px rgba(255,255,255,0.025) !important;
+    }
+
+    .screen-wrap.is-zoom .emulator-frame {
+      transform: scale(1.07) !important;
+    }
+
+    .screen-wrap.is-fill .emulator-frame {
+      transform: translateY(-5.5%) scale(1.17) !important;
+    }
+
+    .screen-status {
+      min-height: 14px !important;
+      font-size: 0.62rem !important;
+      padding: 0 2px !important;
+    }
+
+    .controls-module {
+      grid-template-rows: auto auto !important;
+      gap: 5px !important;
+      padding: 0 2px 2px !important;
+      min-height: 0 !important;
+      align-self: start !important;
+    }
+
+    .main-controls {
+      align-items: center !important;
+      gap: 7px !important;
+    }
+
+    .pad-label,
+    .button-label {
+      font-size: 0.64rem !important;
+      letter-spacing: 0.16em !important;
+    }
+
+    .joystick {
+      width: min(32vw, 130px) !important;
+      border-radius: 24px !important;
+    }
+
+    .action-cluster {
+      width: min(35vw, 144px) !important;
+      height: min(30vw, 124px) !important;
+    }
+
+    .action-a {
+      width: min(22vw, 92px) !important;
+    }
+
+    .action-b {
+      width: min(16vw, 66px) !important;
+    }
+
+    .action-button strong {
+      font-size: 1.04rem !important;
+    }
+
+    .action-button span {
+      font-size: 0.64rem !important;
+      margin-top: 4px !important;
+    }
+
+    .center-pills {
+      gap: 6px !important;
+      padding-bottom: 0 !important;
+    }
+
+    .mini-pill {
+      min-height: 30px !important;
+      padding: 0 10px !important;
+      border-radius: 15px !important;
+      font-size: 0.74rem !important;
+    }
+
+    @media (max-height: 760px) {
+      .app {
+        padding-top: 4px !important;
+        gap: 4px !important;
+      }
+
+      .topbar {
+        min-height: 32px !important;
+      }
+
+      .brand-kicker {
+        display: none !important;
+      }
+
+      h1 {
+        font-size: 1.58rem !important;
+      }
+
+      .console {
+        padding: 5px !important;
+        gap: 5px !important;
+        border-radius: 24px !important;
+      }
+
+      .screen-module {
+        padding: 4px !important;
+        border-radius: 19px !important;
+      }
+
+      .screen-header {
+        display: none !important;
+      }
+
+      .screen-status {
+        font-size: 0.58rem !important;
+        min-height: 12px !important;
+      }
+
+      .joystick {
+        width: min(30vw, 118px) !important;
+        border-radius: 22px !important;
+      }
+
+      .action-cluster {
+        width: min(33vw, 130px) !important;
+        height: min(27vw, 108px) !important;
+      }
+
+      .action-a {
+        width: min(20vw, 82px) !important;
+      }
+
+      .action-b {
+        width: min(15vw, 58px) !important;
+      }
+
+      .mini-pill {
+        min-height: 27px !important;
+        padding: 0 8px !important;
+        font-size: 0.68rem !important;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -610,7 +820,7 @@
         </div>
 
         <div class="screen-wrap is-zoom" id="screenWrap">
-          <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=75" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
+          <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=77" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
           <div id="loadingOverlay" class="loading-overlay">
             <strong>TonyST</strong>
             <span id="engineStatus">Starting Hatari WebAssembly</span>
@@ -662,8 +872,12 @@
         </div>
 
         <div class="menu-grid">
-          <button id="loadGameButton" type="button">Load game</button>
+          <button id="loadGameButton" type="button">Load Disk A</button>
+          <button id="loadDiskBButton" type="button">Load Disk B</button>
+          <button id="swapDisksButton" type="button">Swap A/B + Reset</button>
           <button id="resetButton" type="button">Reset</button>
+          <button id="ejectDiskAButton" type="button">Eject Disk A</button>
+          <button id="ejectDiskBButton" type="button">Eject Disk B</button>
           <button id="cleanBootButton" type="button">Clean boot</button>
           <button id="fullscreenButton" type="button">Full screen</button>
           <button id="zoomButton" type="button">Screen: Zoomed</button>
@@ -675,7 +889,7 @@
         <details class="notes" open>
           <summary>Quick help</summary>
           <p>A is Fire in joystick mode, and left click in mouse mode. B and Start send the built in start sequence for awkward intros. Keyboard is there for Space, Enter, F keys and typing.</p>
-          <p>Use Load game for .st, .msa or .stx first. Screen mode toggles zoom if a game looks cropped. Input: Gamepad keeps joystick support steadier on iPhone.</p>
+          <p>For multi disk games, load Disk 1 into A and Disk 2 into B, then reset. If a game asks you to swap disks, use Swap A/B + Reset. True live floppy swapping is not exposed by this browser Hatari build yet.</p>
         </details>
 
         <p class="credit">Uses the existing Hatari engine files in engine/hatari and the Mesmotronic browser Hatari build as the working base.</p>
@@ -760,7 +974,7 @@
 
   <script>
 (() => {
-      const VERSION = "75";
+      const VERSION = "77";
       const ORIGIN = window.location.origin;
       const frame = document.getElementById("emulatorFrame");
       const screenWrap = document.getElementById("screenWrap");
@@ -770,6 +984,10 @@
       const fileLabel = document.getElementById("fileLabel");
       const diskInput = document.getElementById("diskInput");
       const loadGameButton = document.getElementById("loadGameButton");
+      const loadDiskBButton = document.getElementById("loadDiskBButton");
+      const swapDisksButton = document.getElementById("swapDisksButton");
+      const ejectDiskAButton = document.getElementById("ejectDiskAButton");
+      const ejectDiskBButton = document.getElementById("ejectDiskBButton");
       const resetButton = document.getElementById("resetButton");
       const resetButtonVisible = document.getElementById("resetButtonVisible");
       const cleanBootButton = document.getElementById("cleanBootButton");
@@ -793,8 +1011,11 @@
       const joystickLabel = document.getElementById("joystickLabel");
       const startButton = document.getElementById("startButton");
 
-      let diskFile = null;
-      let diskName = "";
+      let diskAFile = null;
+      let diskBFile = null;
+      let diskAName = "";
+      let diskBName = "";
+      let pendingDiskSlot = "A";
       let childReady = false;
       let bootToken = 0;
       let joystickKeys = new Set();
@@ -802,7 +1023,7 @@
       let lastMouseTouch = null;
       let controlMode = localStorage.getItem("tonyst-control-mode") || "joystick";
       let joyInputMode = localStorage.getItem("tonyst-joy-input") || "gamepad";
-      let screenMode = localStorage.getItem("tonyst-screen-mode") || "zoom";
+      let screenMode = localStorage.getItem("tonyst-screen-mode-v77") || "fill";
       let currentJoy = { x: 0, y: 0, fire: false };
       const heldButtonKeys = new Set();
       const isTouchDevice = ("ontouchstart" in window) || (navigator.maxTouchPoints || 0) > 0;
@@ -819,8 +1040,20 @@
         if (detail && engineStatus) engineStatus.textContent = detail;
       };
 
+      const shortName = (name, max = 28) => {
+        const text = String(name || "");
+        return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+      };
+
       const setFileLabel = () => {
-        if (fileLabel) fileLabel.textContent = diskName || "Built in boot";
+        if (!fileLabel) return;
+        if (!diskAName && !diskBName) {
+          fileLabel.textContent = "Built in boot";
+          return;
+        }
+        const a = diskAName ? `A: ${shortName(diskAName, 22)}` : "A: Empty";
+        const b = diskBName ? `B: ${shortName(diskBName, 22)}` : "B: Empty";
+        fileLabel.textContent = `${a}  •  ${b}`;
       };
 
       const showOverlay = (detail) => {
@@ -842,25 +1075,39 @@
         releaseHeldButtons();
         childReady = false;
         bootToken += 1;
-        showOverlay(diskName ? "Preparing selected game" : "Starting clean boot");
+        showOverlay((diskAName || diskBName) ? "Preparing selected disk setup" : "Starting clean boot");
         if (frame) frame.src = `tonyst.html?v=${VERSION}&boot=${bootToken}`;
       };
 
       const sendStartToChild = async () => {
         if (!frame?.contentWindow || !childReady) return;
         const myToken = bootToken;
-        const payload = { type: "tonyst-start", version: VERSION, bootToken: myToken, diskName: diskName || "", joyMode: joyInputMode };
-        if (diskFile) {
-          status("Engine, loading", "Reading selected game file");
-          try {
-            payload.diskBytes = await diskFile.arrayBuffer();
-          } catch (_) {
-            status("File error", "Could not read the selected game file");
-            return;
+        const payload = {
+          type: "tonyst-start",
+          version: VERSION,
+          bootToken: myToken,
+          diskAName: diskAName || "",
+          diskBName: diskBName || "",
+          joyMode: joyInputMode
+        };
+
+        try {
+          if (diskAFile) {
+            status("Engine, loading", "Reading Disk A");
+            payload.diskABytes = await diskAFile.arrayBuffer();
           }
+          if (diskBFile) {
+            status("Engine, loading", "Reading Disk B");
+            payload.diskBBytes = await diskBFile.arrayBuffer();
+          }
+        } catch (_) {
+          status("File error", "Could not read the selected disk file");
+          return;
         }
+
         if (myToken !== bootToken) return;
-        status("Engine, loading", diskName ? "Sending game to Hatari" : "Starting Hatari");
+        const detail = (diskAName || diskBName) ? "Sending disks to Hatari" : "Starting Hatari";
+        status("Engine, loading", detail);
         frame.contentWindow.postMessage(payload, ORIGIN);
       };
 
@@ -973,9 +1220,13 @@
       };
 
       const applyScreenMode = () => {
-        const zoomed = screenMode !== "fit";
+        const fill = screenMode === "fill";
+        const zoomed = screenMode === "zoom";
+        screenWrap?.classList.toggle("is-fill", fill);
         screenWrap?.classList.toggle("is-zoom", zoomed);
-        if (zoomButton) zoomButton.textContent = zoomed ? "Screen: Zoomed" : "Screen: Fit";
+        if (zoomButton) {
+          zoomButton.textContent = fill ? "Screen: Fill" : zoomed ? "Screen: Zoomed" : "Screen: Fit";
+        }
       };
 
       const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
@@ -1032,13 +1283,47 @@
       quickStartButton?.addEventListener("click", () => { closeMenu(); sendSequence("Start"); });
       quickStartButtonVisible?.addEventListener("click", () => sendSequence("Start"));
 
-      loadGameButton?.addEventListener("click", () => { closeMenu(); diskInput?.click(); });
+      const chooseDiskFile = (slot) => {
+        closeMenu();
+        pendingDiskSlot = slot;
+        diskInput?.click();
+      };
+
+      loadGameButton?.addEventListener("click", () => chooseDiskFile("A"));
+      loadDiskBButton?.addEventListener("click", () => chooseDiskFile("B"));
+
+      swapDisksButton?.addEventListener("click", () => {
+        closeMenu();
+        const oldAFile = diskAFile;
+        const oldAName = diskAName;
+        diskAFile = diskBFile;
+        diskAName = diskBName;
+        diskBFile = oldAFile;
+        diskBName = oldAName;
+        reloadFrame();
+      });
+
+      ejectDiskAButton?.addEventListener("click", () => {
+        closeMenu();
+        diskAFile = null;
+        diskAName = "";
+        reloadFrame();
+      });
+
+      ejectDiskBButton?.addEventListener("click", () => {
+        closeMenu();
+        diskBFile = null;
+        diskBName = "";
+        reloadFrame();
+      });
       resetButton?.addEventListener("click", () => { closeMenu(); reloadFrame(); });
       resetButtonVisible?.addEventListener("click", () => reloadFrame());
       cleanBootButton?.addEventListener("click", () => {
         closeMenu();
-        diskFile = null;
-        diskName = "";
+        diskAFile = null;
+        diskBFile = null;
+        diskAName = "";
+        diskBName = "";
         if (diskInput) diskInput.value = "";
         reloadFrame();
       });
@@ -1054,16 +1339,22 @@
 
       zoomButton?.addEventListener("click", () => {
         closeMenu();
-        screenMode = screenMode === "fit" ? "zoom" : "fit";
-        localStorage.setItem("tonyst-screen-mode", screenMode);
+        screenMode = screenMode === "fill" ? "fit" : screenMode === "fit" ? "zoom" : "fill";
+        localStorage.setItem("tonyst-screen-mode-v77", screenMode);
         applyScreenMode();
       });
 
       diskInput?.addEventListener("change", () => {
         const file = diskInput.files?.[0];
         if (!file) return;
-        diskFile = file;
-        diskName = file.name;
+        if (pendingDiskSlot === "B") {
+          diskBFile = file;
+          diskBName = file.name;
+        } else {
+          diskAFile = file;
+          diskAName = file.name;
+        }
+        if (diskInput) diskInput.value = "";
         reloadFrame();
       });
 

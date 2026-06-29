@@ -48,7 +48,7 @@
 
   <script>
     (() => {
-      const VERSION = "75";
+      const VERSION = "77";
       const ENGINE_DIR = "engine/hatari";
       const ORIGIN = window.location.origin;
       const canvas = document.getElementById("canvas");
@@ -315,9 +315,14 @@
         if (started) return;
         started = true;
 
-        const hasDisk = startData.diskBytes && startData.diskBytes.byteLength;
-        const diskFilename = safeName(startData.diskName || "disk.st", "disk.st");
-        const diskPath = `/tonyst/${diskFilename}`;
+        const hasDiskA = startData.diskABytes && startData.diskABytes.byteLength;
+        const hasDiskB = startData.diskBBytes && startData.diskBBytes.byteLength;
+        // Backwards compatibility for older parent pages.
+        const legacyDisk = startData.diskBytes && startData.diskBytes.byteLength;
+        const diskAFilename = safeName(startData.diskAName || startData.diskName || "disk_a.st", "disk_a.st");
+        const diskBFilename = safeName(startData.diskBName || "disk_b.st", "disk_b.st");
+        const diskAPath = `/tonyst/A_${diskAFilename}`;
+        const diskBPath = `/tonyst/B_${diskBFilename}`;
         joyMode = startData.joyMode || "gamepad";
         updateVirtualJoy(0, 0, false);
 
@@ -332,16 +337,24 @@
         if (joyMode === "keys") args.push("--joystick", "1", "--joy1", "keys");
         else args.push("--joy1", "real");
 
-        if (hasDisk) args.push("--disk-a", diskPath);
+        if (hasDiskA || legacyDisk) args.push("--disk-a", diskAPath);
         else args.push("-d", "/share/hatari/fs/");
+        if (hasDiskB) args.push("--disk-b", diskBPath);
 
         const moduleObject = {
           preRun: [function () {
-            if (!hasDisk) return;
+            if (!(hasDiskA || hasDiskB || legacyDisk)) return;
             try {
               try { window.Module.FS_createPath("/", "tonyst", true, true); } catch (_) {}
-              window.Module.FS_createDataFile("/tonyst", diskFilename, new Uint8Array(startData.diskBytes), true, true, true);
-              sendParent("tonyst-status", "Engine, loading", `Disk mounted: ${startData.diskName || diskFilename}`);
+              if (hasDiskA || legacyDisk) {
+                const bytes = hasDiskA ? startData.diskABytes : startData.diskBytes;
+                window.Module.FS_createDataFile("/tonyst", `A_${diskAFilename}`, new Uint8Array(bytes), true, true, true);
+              }
+              if (hasDiskB) {
+                window.Module.FS_createDataFile("/tonyst", `B_${diskBFilename}`, new Uint8Array(startData.diskBBytes), true, true, true);
+              }
+              const mounted = [hasDiskA || legacyDisk ? `A: ${startData.diskAName || startData.diskName || diskAFilename}` : "", hasDiskB ? `B: ${startData.diskBName || diskBFilename}` : ""].filter(Boolean).join(" • ");
+              sendParent("tonyst-status", "Engine, loading", mounted ? `Mounted ${mounted}` : "Disks mounted");
             } catch (err) {
               sendParent("tonyst-error", "Disk error", `Could not mount disk: ${err?.message || err}`);
             }
@@ -350,7 +363,10 @@
             bootMessage?.classList.add("hidden");
             const rect = canvas.getBoundingClientRect();
             virtualMouse = { x: (rect.width || 832) / 2, y: (rect.height || 588) / 2, down: false };
-            sendParent("tonyst-loaded", "Engine, loaded", hasDisk ? `Booted ${startData.diskName || diskFilename}` : "Hatari ready");
+            const loadedDetail = (hasDiskA || hasDiskB || legacyDisk)
+              ? [hasDiskA || legacyDisk ? `A: ${startData.diskAName || startData.diskName || diskAFilename}` : "", hasDiskB ? `B: ${startData.diskBName || diskBFilename}` : ""].filter(Boolean).join(" • ")
+              : "Hatari ready";
+            sendParent("tonyst-loaded", "Engine, loaded", loadedDetail);
             setTimeout(() => canvas.focus(), 250);
           }],
           canvas,
@@ -379,7 +395,7 @@
             for (let i = 0; i < value.length; i += 2) {
               const flag = value[i];
               const val = value[i + 1];
-              if (hasDisk && flag === "-d") continue;
+              if ((hasDiskA || hasDiskB || legacyDisk) && flag === "-d") continue;
               if (args.indexOf(flag) === -1) args.push(flag, val);
             }
           }
@@ -397,8 +413,8 @@
           sendParent("tonyst-error", "Engine, error", detail);
         };
 
-        setBootMessage(hasDisk ? "Mounting selected game" : "Starting clean boot");
-        sendParent("tonyst-status", "Engine, loading", hasDisk ? "Mounting selected game" : "Starting clean boot");
+        setBootMessage((hasDiskA || hasDiskB || legacyDisk) ? "Mounting selected disk setup" : "Starting clean boot");
+        sendParent("tonyst-status", "Engine, loading", (hasDiskA || hasDiskB || legacyDisk) ? "Mounting selected disks" : "Starting clean boot");
 
         const script = document.createElement("script");
         script.async = true;
