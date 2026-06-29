@@ -7,26 +7,21 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#0e0f17" />
+  <meta name="theme-color" content="#0d0e16" />
   <style>
     :root {
       color-scheme: dark;
-      --bg: #080910;
-      --shell-1: #27273a;
-      --shell-2: #161826;
-      --shell-3: #0f1019;
-      --bezel: #0a0a0f;
-      --line: rgba(255,255,255,0.16);
+      --bg: #07080e;
+      --shell-top: #292b3f;
+      --shell-mid: #181a29;
+      --shell-low: #10121c;
+      --line: rgba(255,255,255,0.15);
       --line-soft: rgba(255,255,255,0.08);
-      --panel: rgba(18,18,28,0.96);
-      --text: #f6f7ff;
-      --muted: #aeb2c5;
-      --shadow: rgba(0,0,0,0.56);
-      --glow: rgba(122, 129, 255, 0.16);
-      --button: #36384d;
-      --button-2: #434664;
-      --accent: #cfd2ff;
-      --success: #86ff7a;
+      --text: #f7f8ff;
+      --muted: #aeb3c7;
+      --button: #36394f;
+      --button-2: #484c6a;
+      --shadow: rgba(0,0,0,0.55);
     }
 
     * {
@@ -34,14 +29,15 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
       background:
-        radial-gradient(circle at top, rgba(56, 62, 110, 0.30) 0, rgba(18, 20, 33, 0.10) 28%, transparent 46%),
-        linear-gradient(180deg, #0d0f18, var(--bg) 56%, #040507 100%);
+        radial-gradient(circle at 50% -12%, rgba(93, 101, 168, 0.26), transparent 44%),
+        linear-gradient(180deg, #11131e 0%, var(--bg) 76%);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       touch-action: none;
@@ -58,37 +54,35 @@
       color: var(--text);
       background: linear-gradient(180deg, var(--button-2), var(--button));
       font: inherit;
-      font-weight: 800;
+      font-weight: 850;
       cursor: pointer;
       user-select: none;
       touch-action: none;
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.10),
-        0 10px 24px var(--shadow);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.11), 0 8px 20px var(--shadow);
     }
 
     button:active,
     button.is-pressed {
       transform: translateY(1px) scale(0.985);
-      filter: brightness(1.14);
+      filter: brightness(1.16);
     }
 
     .app {
       width: min(100%, 520px);
       height: 100svh;
       margin: 0 auto;
-      padding: 8px 10px max(10px, env(safe-area-inset-bottom));
+      padding: 7px 10px max(8px, env(safe-area-inset-bottom));
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
-      gap: 8px;
+      gap: 7px;
     }
 
     .topbar {
+      min-height: 42px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      min-height: 44px;
+      gap: 10px;
     }
 
     .brand-kicker {
@@ -96,87 +90,73 @@
       color: var(--muted);
       text-transform: uppercase;
       letter-spacing: 0.18em;
-      font-size: 0.62rem;
+      font-size: 0.58rem;
       line-height: 1.05;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(1.95rem, 6vw, 2.5rem);
+      font-size: clamp(1.85rem, 5.9vw, 2.35rem);
       letter-spacing: -0.06em;
       line-height: 0.92;
     }
 
     .menu-button {
-      min-height: 42px;
-      padding: 0 16px;
-      border-radius: 20px;
+      min-height: 40px;
+      padding: 0 15px;
+      border-radius: 18px;
       white-space: nowrap;
     }
 
     .console {
       min-height: 0;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
-      gap: 8px;
-      padding: 10px;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 9px;
+      padding: 9px;
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 32px;
+      border-radius: 30px;
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02) 30%, rgba(0,0,0,0.18) 100%),
-        linear-gradient(180deg, var(--shell-1), var(--shell-2) 54%, var(--shell-3));
+        linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.025) 34%, rgba(0,0,0,0.18)),
+        linear-gradient(180deg, var(--shell-top), var(--shell-mid) 52%, var(--shell-low));
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,0.12),
-        inset 0 -18px 40px rgba(0,0,0,0.22),
-        0 18px 46px rgba(0,0,0,0.54);
-      position: relative;
+        inset 0 -16px 34px rgba(0,0,0,0.22),
+        0 18px 44px rgba(0,0,0,0.50);
       overflow: hidden;
-    }
-
-    .console::before {
-      content: "";
-      position: absolute;
-      inset: 0 0 auto 0;
-      height: 22%;
-      background: radial-gradient(circle at 50% -10%, rgba(255,255,255,0.18), transparent 58%);
-      pointer-events: none;
     }
 
     .screen-module {
       min-height: 0;
       display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
-      gap: 8px;
-      padding: 8px;
+      grid-template-rows: auto auto auto;
+      gap: 5px;
+      padding: 7px;
       border-radius: 24px;
-      background: linear-gradient(180deg, #11131a, #09090e 88%);
+      background: linear-gradient(180deg, #11131b, #08090e);
       border: 1px solid rgba(255,255,255,0.08);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.04),
-        inset 0 0 0 1px rgba(0,0,0,0.28),
-        0 12px 28px rgba(0,0,0,0.34);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 24px rgba(0,0,0,0.34);
     }
 
     .screen-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      height: 14px;
       padding: 0 2px;
-      min-height: 16px;
     }
 
     .speaker {
       display: flex;
-      gap: 3px;
-      opacity: 0.55;
+      gap: 4px;
+      opacity: 0.45;
     }
 
     .speaker span {
-      width: 16px;
+      width: 18px;
       height: 2px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.13);
       display: block;
     }
 
@@ -184,8 +164,8 @@
       width: 12px;
       height: 12px;
       border-radius: 4px;
-      background: linear-gradient(180deg, #a8ff94, #4cb84d);
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.34), 0 0 10px rgba(122,255,140,0.35);
+      background: linear-gradient(180deg, #a8ff94, #49b94a);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.34), 0 0 10px rgba(122,255,140,0.36);
       flex: 0 0 auto;
     }
 
@@ -193,17 +173,16 @@
       position: relative;
       overflow: hidden;
       width: 100%;
-      height: 100%;
+      aspect-ratio: 832 / 588;
+      height: auto;
       min-height: 0;
-      border-radius: 20px;
+      max-height: min(43svh, 100%);
+      border-radius: 18px;
       background: #000;
       border: 1px solid rgba(255,255,255,0.08);
       box-shadow:
         inset 0 0 0 1px rgba(255,255,255,0.04),
-        inset 0 14px 24px rgba(255,255,255,0.02),
-        0 0 0 6px rgba(255,255,255,0.02);
-      aspect-ratio: 832 / 588;
-      align-self: center;
+        0 0 0 5px rgba(255,255,255,0.025);
     }
 
     .emulator-frame {
@@ -214,12 +193,11 @@
       border: 0;
       background: #000;
       transform-origin: 50% 50%;
-      transition: transform 0.18s ease;
-      will-change: transform;
+      transition: transform 0.16s ease;
     }
 
     .screen-wrap.is-zoom .emulator-frame {
-      transform: scale(1.08);
+      transform: scale(1.045);
     }
 
     .loading-overlay {
@@ -229,11 +207,11 @@
       display: grid;
       place-content: center;
       gap: 8px;
-      padding: 24px;
+      padding: 22px;
       text-align: center;
       background: #000;
       pointer-events: none;
-      transition: opacity 0.24s ease;
+      transition: opacity 0.22s ease;
     }
 
     .loading-overlay.is-hidden {
@@ -241,7 +219,7 @@
     }
 
     .loading-overlay strong {
-      font-size: 1.75rem;
+      font-size: 1.55rem;
       letter-spacing: -0.04em;
     }
 
@@ -254,10 +232,10 @@
       justify-content: space-between;
       gap: 8px;
       align-items: center;
-      min-height: 18px;
+      min-height: 16px;
       padding: 0 2px;
       color: rgba(228,230,245,0.72);
-      font-size: 0.70rem;
+      font-size: 0.68rem;
     }
 
     .screen-status span {
@@ -268,51 +246,47 @@
     }
 
     .controls-module {
+      min-height: 0;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-      align-items: end;
-      gap: 8px;
-      min-height: 174px;
-      padding: 2px 2px 6px;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 7px;
+      padding: 0 3px 3px;
+    }
+
+    .main-controls {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(136px, 1fr) minmax(138px, 1fr);
+      gap: 10px;
+      align-items: center;
     }
 
     .left-bank,
     .right-bank {
+      min-width: 0;
       display: grid;
       justify-items: center;
       gap: 6px;
-      min-width: 0;
-    }
-
-    .center-bank {
-      display: grid;
-      align-content: end;
-      justify-items: center;
-      gap: 8px;
-      padding-bottom: 6px;
     }
 
     .pad-label,
     .button-label {
       color: var(--muted);
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.18em;
     }
 
     .joystick {
       position: relative;
-      width: min(36vw, 156px);
+      width: min(36vw, 148px);
       aspect-ratio: 1;
       border-radius: 30px;
       border: 1px solid rgba(255,255,255,0.14);
       background:
-        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.11) 0 10%, rgba(255,255,255,0.035) 11% 34%, rgba(0,0,0,0.22) 35% 100%),
-        linear-gradient(180deg, #343850, #212536);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.12),
-        inset 0 -14px 26px rgba(0,0,0,0.26),
-        0 12px 26px rgba(0,0,0,0.40);
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,0.12) 0 10%, rgba(255,255,255,0.035) 11% 34%, rgba(0,0,0,0.24) 35% 100%),
+        linear-gradient(180deg, #363a52, #212436);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -14px 26px rgba(0,0,0,0.26), 0 10px 22px rgba(0,0,0,0.38);
       touch-action: none;
     }
 
@@ -325,8 +299,15 @@
       pointer-events: none;
     }
 
-    .stick-cross.horizontal { width: 65%; height: 9px; }
-    .stick-cross.vertical { width: 9px; height: 65%; }
+    .stick-cross.horizontal {
+      width: 65%;
+      height: 9px;
+    }
+
+    .stick-cross.vertical {
+      width: 9px;
+      height: 65%;
+    }
 
     .stick-thumb {
       position: absolute;
@@ -336,35 +317,32 @@
       aspect-ratio: 1;
       border-radius: 50%;
       transform: translate(-50%, -50%);
-      background: linear-gradient(180deg, #f6f6ff, #c4c7db);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 10px 18px rgba(0,0,0,0.52);
+      background: linear-gradient(180deg, #f7f7ff, #c4c7dc);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.85), 0 9px 18px rgba(0,0,0,0.52);
       pointer-events: none;
     }
 
     .action-cluster {
-      display: grid;
-      grid-template-columns: auto auto;
-      gap: 12px;
-      align-items: center;
-      justify-items: center;
+      position: relative;
+      width: min(39vw, 164px);
+      height: min(35vw, 148px);
     }
 
     .action-button {
+      position: absolute;
       display: grid;
       place-content: center;
       border-radius: 50%;
-      background: radial-gradient(circle at 48% 26%, #515576, #2c2f46 66%, #202334 100%);
+      background: radial-gradient(circle at 48% 26%, #525779, #2c3047 66%, #202334 100%);
       border: 1px solid rgba(255,255,255,0.16);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,0.12),
-        0 12px 28px rgba(0,0,0,0.42);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 11px 24px rgba(0,0,0,0.42);
       text-align: center;
       line-height: 1;
     }
 
     .action-button strong {
       display: block;
-      font-size: 1.18rem;
+      font-size: 1.14rem;
       letter-spacing: -0.04em;
     }
 
@@ -372,41 +350,37 @@
       display: block;
       margin-top: 5px;
       color: var(--muted);
-      font-size: 0.70rem;
+      font-size: 0.68rem;
       font-weight: 800;
     }
 
     .action-a {
-      width: min(27vw, 116px);
+      right: 0;
+      bottom: 0;
+      width: min(25vw, 108px);
       aspect-ratio: 1;
     }
 
     .action-b {
-      width: min(20vw, 82px);
+      left: 0;
+      top: 0;
+      width: min(19vw, 78px);
       aspect-ratio: 1;
-      align-self: start;
-      margin-top: 26px;
     }
 
-    .small-pills {
-      display: grid;
-      gap: 8px;
-      justify-items: center;
-      width: 100%;
-    }
-
-    .pill-row {
+    .center-pills {
       display: flex;
-      gap: 8px;
       flex-wrap: wrap;
       justify-content: center;
+      gap: 7px;
+      padding-bottom: 1px;
     }
 
     .mini-pill {
       min-height: 34px;
-      padding: 0 14px;
+      padding: 0 13px;
       border-radius: 17px;
-      font-size: 0.82rem;
+      font-size: 0.80rem;
       white-space: nowrap;
     }
 
@@ -484,7 +458,7 @@
 
     .notes summary {
       color: var(--text);
-      font-weight: 800;
+      font-weight: 850;
       cursor: pointer;
     }
 
@@ -526,7 +500,9 @@
       scrollbar-width: none;
     }
 
-    .key-row::-webkit-scrollbar { display: none; }
+    .key-row::-webkit-scrollbar {
+      display: none;
+    }
 
     .key-row button {
       flex: 0 0 auto;
@@ -537,53 +513,82 @@
       font-size: 0.88rem;
     }
 
-    .key-row button.key-wide { min-width: 74px; }
-    .key-row button.key-space { min-width: 160px; }
+    .key-row button.key-wide {
+      min-width: 74px;
+    }
+
+    .key-row button.key-space {
+      min-width: 160px;
+    }
 
     .mode-active {
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 1px rgba(120,128,255,0.20), 0 10px 24px rgba(0,0,0,0.48);
-      background: linear-gradient(180deg, #4f5476, #373c57);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 1px rgba(120,128,255,0.20), 0 8px 20px rgba(0,0,0,0.46);
+      background: linear-gradient(180deg, #505578, #383d59);
     }
 
     @media (max-height: 760px) {
-      .app { gap: 6px; padding-top: 6px; }
-      .brand-kicker { display: none; }
-      h1 { font-size: 1.8rem; }
-      .console { padding: 8px; border-radius: 28px; }
-      .controls-module { min-height: 156px; }
-      .joystick { width: min(32vw, 136px); }
-      .action-a { width: min(24vw, 100px); }
-      .action-b { width: min(18vw, 72px); }
-      .mini-pill { min-height: 32px; padding: 0 12px; font-size: 0.78rem; }
-      .screen-status { font-size: 0.65rem; }
+      .app {
+        gap: 5px;
+        padding-top: 5px;
+      }
+      .brand-kicker {
+        display: none;
+      }
+      h1 {
+        font-size: 1.75rem;
+      }
+      .topbar {
+        min-height: 36px;
+      }
+      .menu-button {
+        min-height: 36px;
+        border-radius: 16px;
+        padding: 0 13px;
+      }
+      .console {
+        padding: 7px;
+        border-radius: 27px;
+        gap: 7px;
+      }
+      .screen-module {
+        padding: 6px;
+        border-radius: 22px;
+      }
+      .screen-wrap {
+        max-height: 40svh;
+        border-radius: 16px;
+      }
+      .controls-module {
+        gap: 5px;
+      }
+      .joystick {
+        width: min(33vw, 134px);
+        border-radius: 26px;
+      }
+      .action-cluster {
+        width: min(37vw, 150px);
+        height: min(32vw, 132px);
+      }
+      .action-a {
+        width: min(23vw, 94px);
+      }
+      .action-b {
+        width: min(17vw, 68px);
+      }
+      .mini-pill {
+        min-height: 31px;
+        padding: 0 11px;
+        font-size: 0.76rem;
+      }
+      .screen-status {
+        font-size: 0.64rem;
+      }
     }
 
     @media (display-mode: standalone) {
-      .app { height: 100dvh; }
-    }
-
-    @media (orientation: landscape) {
       .app {
-        width: min(100%, 920px);
-        grid-template-rows: auto minmax(0, 1fr);
+        height: 100dvh;
       }
-      .console {
-        grid-template-columns: minmax(0, 1fr) 280px;
-        grid-template-rows: 1fr;
-        align-items: stretch;
-      }
-      .screen-module { min-height: 0; }
-      .controls-module {
-        min-height: 0;
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-        align-items: center;
-        justify-items: center;
-      }
-      .center-bank { order: 3; }
-      .right-bank { order: 2; }
-      .joystick { width: min(24vw, 144px); }
-      .action-cluster { grid-template-columns: auto auto; }
     }
   </style>
 </head>
@@ -605,7 +610,7 @@
         </div>
 
         <div class="screen-wrap is-zoom" id="screenWrap">
-          <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=74" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
+          <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=75" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
           <div id="loadingOverlay" class="loading-overlay">
             <strong>TonyST</strong>
             <span id="engineStatus">Starting Hatari WebAssembly</span>
@@ -619,34 +624,30 @@
       </section>
 
       <section class="controls-module" aria-label="Controls">
-        <div class="left-bank">
-          <div class="pad-label" id="joystickLabel">Joystick</div>
-          <div class="joystick" id="joystick" role="application" aria-label="Joystick or mouse pad">
-            <span class="stick-cross horizontal"></span>
-            <span class="stick-cross vertical"></span>
-            <span class="stick-thumb" id="stickThumb"></span>
-          </div>
-        </div>
-
-        <div class="center-bank">
-          <div class="small-pills">
-            <div class="pill-row">
-              <button class="mini-pill mode-active" id="mouseModeButton" type="button">🕹 Joystick</button>
-              <button class="mini-pill" id="keyboardButton" type="button">⌨ Keyboard</button>
+        <div class="main-controls">
+          <div class="left-bank">
+            <div class="pad-label" id="joystickLabel">Joystick</div>
+            <div class="joystick" id="joystick" role="application" aria-label="Joystick or mouse pad">
+              <span class="stick-cross horizontal"></span>
+              <span class="stick-cross vertical"></span>
+              <span class="stick-thumb" id="stickThumb"></span>
             </div>
-            <div class="pill-row">
-              <button class="mini-pill" id="quickStartButtonVisible" type="button">Start</button>
-              <button class="mini-pill" id="resetButtonVisible" type="button">Reset</button>
+          </div>
+
+          <div class="right-bank">
+            <div class="button-label">Buttons</div>
+            <div class="action-cluster">
+              <button class="action-button action-b" id="startButton" data-sequence="Start" type="button"><strong>B</strong><span>Start</span></button>
+              <button class="action-button action-a" id="fireButton" data-key="ControlRight" type="button"><strong>A</strong><span id="fireSubLabel">Fire</span></button>
             </div>
           </div>
         </div>
 
-        <div class="right-bank">
-          <div class="button-label">Buttons</div>
-          <div class="action-cluster">
-            <button class="action-button action-b" id="startButton" data-sequence="Start" type="button"><strong>B</strong><span>Start</span></button>
-            <button class="action-button action-a" id="fireButton" data-key="ControlRight" type="button"><strong>A</strong><span id="fireSubLabel">Fire</span></button>
-          </div>
+        <div class="center-pills">
+          <button class="mini-pill mode-active" id="mouseModeButton" type="button">🕹 Joystick</button>
+          <button class="mini-pill" id="keyboardButton" type="button">⌨ Keyboard</button>
+          <button class="mini-pill" id="quickStartButtonVisible" type="button">Start</button>
+          <button class="mini-pill" id="resetButtonVisible" type="button">Reset</button>
         </div>
       </section>
     </section>
@@ -758,8 +759,8 @@
   </main>
 
   <script>
-    (() => {
-      const VERSION = "74";
+(() => {
+      const VERSION = "75";
       const ORIGIN = window.location.origin;
       const frame = document.getElementById("emulatorFrame");
       const screenWrap = document.getElementById("screenWrap");
@@ -1209,6 +1210,7 @@
       setFileLabel();
       showOverlay("Starting Hatari WebAssembly");
     })();
+  
   </script>
 </body>
 </html>
