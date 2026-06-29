@@ -46,12 +46,57 @@
 
   <script>
     (() => {
-      const VERSION = "71";
+      const VERSION = "72";
       const ENGINE_DIR = "engine/hatari";
       const ORIGIN = window.location.origin;
       const canvas = document.getElementById("canvas");
       const bootMessage = document.getElementById("bootMessage");
       let started = false;
+      let joyMode = "gamepad";
+      const virtualPad = {
+        axes: [0, 0, 0, 0],
+        buttons: Array.from({ length: 16 }, () => ({ pressed: false, touched: false, value: 0 })),
+        timestamp: 0,
+      };
+      let virtualMouse = { x: 416, y: 294, down: false };
+
+      function cloneButton(button) {
+        return { pressed: Boolean(button.pressed), touched: Boolean(button.touched), value: Number(button.value || 0) };
+      }
+
+      function makeVirtualGamepad() {
+        virtualPad.timestamp = performance.now();
+        return {
+          id: "TonyST Virtual Joystick",
+          index: 0,
+          connected: true,
+          mapping: "standard",
+          timestamp: virtualPad.timestamp,
+          axes: virtualPad.axes.slice(),
+          buttons: virtualPad.buttons.map(cloneButton),
+        };
+      }
+
+      function installVirtualGamepad() {
+        try {
+          Object.defineProperty(navigator, "getGamepads", {
+            configurable: true,
+            value: () => [makeVirtualGamepad()],
+          });
+        } catch (_) {
+          try { navigator.getGamepads = () => [makeVirtualGamepad()]; } catch (_) {}
+        }
+
+        setTimeout(() => {
+          try {
+            const event = new Event("gamepadconnected");
+            Object.defineProperty(event, "gamepad", { get: () => makeVirtualGamepad() });
+            window.dispatchEvent(event);
+          } catch (_) {}
+        }, 250);
+      }
+
+      installVirtualGamepad();
 
       const keyMap = {
         Space: { key: " ", code: "Space", keyCode: 32, location: 0 },
@@ -128,19 +173,156 @@
         target.dispatchEvent(makeKeyboardEvent(type, info));
       };
 
+      const makePlainEvent = (type, fields) => {
+        const event = {
+          type,
+          timeStamp: performance.now(),
+          bubbles: true,
+          cancelable: true,
+          defaultPrevented: false,
+          preventDefault() { this.defaultPrevented = true; },
+          stopPropagation() {},
+          stopImmediatePropagation() {},
+          target: canvas,
+          currentTarget: canvas,
+          ...fields,
+        };
+        return event;
+      };
+
+      const callJSEventHandlers = (type, event) => {
+        const handlers = Array.isArray(window.JSEvents?.eventHandlers) ? window.JSEvents.eventHandlers : [];
+        const matching = handlers.filter((handler) => handler.eventTypeString === type);
+        if (!matching.length) return false;
+        matching.forEach((handler) => {
+          try { handler.eventListenerFunc(event); } catch (err) { console.warn("[TonyST input]", type, err); }
+        });
+        return true;
+      };
+
       const sendKey = (code, down) => {
         const info = getKeyInfo(code);
         const type = down ? "keydown" : "keyup";
+        const charCode = type === "keypress" && info.key && info.key.length === 1 ? info.key.charCodeAt(0) : 0;
+        const plain = makePlainEvent(type, {
+          key: info.key,
+          code: info.code,
+          location: info.location || 0,
+          ctrlKey: Boolean(info.ctrlKey),
+          shiftKey: Boolean(info.shiftKey),
+          altKey: Boolean(info.altKey),
+          metaKey: Boolean(info.metaKey),
+          repeat: false,
+          charCode: 0,
+          keyCode: info.keyCode || 0,
+          which: info.keyCode || 0,
+          char: "",
+          locale: "",
+        });
+
         try { window.focus(); } catch (_) {}
         try { canvas.focus(); } catch (_) {}
 
-        // Fire the event at every likely SDL target. This is deliberate.
-        [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, type, info));
-
-        // Some ST menus listen for printable keypresses rather than keydown.
-        if (down && info.key && info.key.length === 1) {
-          [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, "keypress", info));
+        const direct = callJSEventHandlers(type, plain);
+        if (!direct) {
+          [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, type, info));
         }
+
+        if (down && info.key && info.key.length === 1) {
+          const press = makePlainEvent("keypress", {
+            key: info.key,
+            code: info.code,
+            location: info.location || 0,
+            ctrlKey: Boolean(info.ctrlKey),
+            shiftKey: Boolean(info.shiftKey),
+            altKey: Boolean(info.altKey),
+            metaKey: Boolean(info.metaKey),
+            repeat: false,
+            charCode: info.key.charCodeAt(0),
+            keyCode: info.keyCode || info.key.charCodeAt(0),
+            which: info.keyCode || info.key.charCodeAt(0),
+            char: info.key,
+            locale: "",
+          });
+          if (!callJSEventHandlers("keypress", press)) {
+            [window, document, document.body, canvas].forEach((target) => dispatchKeyboard(target, "keypress", info));
+          }
+        }
+      };
+
+      const tapKey = (code, duration = 85) => {
+        sendKey(code, true);
+        setTimeout(() => sendKey(code, false), duration);
+      };
+
+      const sendStartSequence = () => {
+        ["ControlRight", "Space", "Enter", "F1", "Digit1"].forEach((code, index) => {
+          setTimeout(() => tapKey(code, 80), index * 115);
+        });
+      };
+
+      const updateVirtualJoy = (axisX = 0, axisY = 0, fire = false) => {
+        virtualPad.axes[0] = Math.max(-1, Math.min(1, Number(axisX) || 0));
+        virtualPad.axes[1] = Math.max(-1, Math.min(1, Number(axisY) || 0));
+        virtualPad.buttons[0] = { pressed: Boolean(fire), touched: Boolean(fire), value: fire ? 1 : 0 };
+        virtualPad.timestamp = performance.now();
+      };
+
+      const mousePlainEvent = (type, fields) => makePlainEvent(type, {
+        screenX: fields.clientX,
+        screenY: fields.clientY,
+        clientX: fields.clientX,
+        clientY: fields.clientY,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        metaKey: false,
+        button: fields.button || 0,
+        buttons: fields.buttons || 0,
+        movementX: fields.movementX || 0,
+        movementY: fields.movementY || 0,
+      });
+
+      const emitMouse = (type, opts = {}) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = rect.left + virtualMouse.x;
+        const clientY = rect.top + virtualMouse.y;
+        const event = mousePlainEvent(type, {
+          clientX,
+          clientY,
+          button: opts.button || 0,
+          buttons: opts.buttons || (virtualMouse.down ? 1 : 0),
+          movementX: opts.movementX || 0,
+          movementY: opts.movementY || 0,
+        });
+        if (!callJSEventHandlers(type, event)) {
+          try {
+            canvas.dispatchEvent(new MouseEvent(type, {
+              bubbles: true,
+              cancelable: true,
+              clientX,
+              clientY,
+              button: opts.button || 0,
+              buttons: opts.buttons || (virtualMouse.down ? 1 : 0),
+              movementX: opts.movementX || 0,
+              movementY: opts.movementY || 0,
+            }));
+          } catch (_) {}
+        }
+      };
+
+      const moveVirtualMouse = (dx, dy) => {
+        const rect = canvas.getBoundingClientRect();
+        const oldX = virtualMouse.x;
+        const oldY = virtualMouse.y;
+        virtualMouse.x = Math.max(0, Math.min(rect.width || 832, virtualMouse.x + Number(dx || 0)));
+        virtualMouse.y = Math.max(0, Math.min(rect.height || 588, virtualMouse.y + Number(dy || 0)));
+        emitMouse("mousemove", { movementX: virtualMouse.x - oldX, movementY: virtualMouse.y - oldY, buttons: virtualMouse.down ? 1 : 0 });
+      };
+
+      const setVirtualMouseButton = (down, button = 0) => {
+        virtualMouse.down = Boolean(down);
+        emitMouse(down ? "mousedown" : "mouseup", { button, buttons: down ? 1 : 0 });
       };
 
       const safeName = (name, fallback) => {
@@ -156,15 +338,22 @@
         const diskFilename = safeName(startData.diskName || "disk.st", "disk.st");
         const diskPath = `/tonyst/${diskFilename}`;
 
+        joyMode = startData.joyMode || "gamepad";
+        updateVirtualJoy(0, 0, false);
+
         const args = [
           "--desktop", "false",
           "--machine", "ste",
           "--statusbar", "false",
           "--memsize", "4",
           "--cpuclock", "16",
-          "--joystick", "1",
-          "--joy1", "keys",
         ];
+
+        if (joyMode === "keys") {
+          args.push("--joystick", "1", "--joy1", "keys");
+        } else {
+          args.push("--joy1", "real");
+        }
 
         if (hasDisk) {
           args.push("--disk-a", diskPath);
@@ -185,6 +374,8 @@
           }],
           postRun: [function () {
             bootMessage?.classList.add("hidden");
+            const rect = canvas.getBoundingClientRect();
+            virtualMouse = { x: (rect.width || 832) / 2, y: (rect.height || 588) / 2, down: false };
             sendParent("tonyst-loaded", "Engine, loaded", hasDisk ? `Booted ${startData.diskName || diskFilename}` : "Hatari ready");
             setTimeout(() => canvas.focus(), 250);
           }],
@@ -258,6 +449,22 @@
 
         if (data.type === "tonyst-key") {
           sendKey(data.code, Boolean(data.down));
+        }
+
+        if (data.type === "tonyst-sequence") {
+          sendStartSequence();
+        }
+
+        if (data.type === "tonyst-joy") {
+          updateVirtualJoy(data.axisX, data.axisY, Boolean(data.fire));
+        }
+
+        if (data.type === "tonyst-mouse-move") {
+          moveVirtualMouse(Number(data.dx || 0), Number(data.dy || 0));
+        }
+
+        if (data.type === "tonyst-mouse-button") {
+          setVirtualMouseButton(Boolean(data.down), Number(data.button || 0));
         }
 
         if (data.type === "tonyst-pause") {

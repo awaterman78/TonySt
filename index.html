@@ -276,10 +276,11 @@
       font-weight: 750;
     }
 
-    .keyboard-toggle {
+    .keyboard-toggle,
+    .mode-toggle {
       width: min(34vw, 142px);
-      min-height: 44px;
-      font-size: 0.9rem;
+      min-height: 40px;
+      font-size: 0.86rem;
     }
 
     .hidden-input {
@@ -458,7 +459,7 @@
 
     <section class="screen-area" aria-label="Atari ST emulator screen">
       <div class="screen-wrap" id="screenWrap">
-        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=71" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
+        <iframe id="emulatorFrame" class="emulator-frame" src="tonyst.html?v=72" title="Hatari Atari ST emulator" allow="fullscreen"></iframe>
         <div id="loadingOverlay" class="loading-overlay">
           <strong>TonyST</strong>
           <span id="engineStatus">Starting Hatari WebAssembly</span>
@@ -481,7 +482,8 @@
       </div>
 
       <div class="action-wrap">
-        <button class="fire-button" id="fireButton" data-key="ControlRight" type="button">Fire<span>Joystick</span></button>
+        <button class="fire-button" id="fireButton" data-key="ControlRight" type="button">Fire<span id="fireSubLabel">Joystick</span></button>
+        <button class="mode-toggle" id="modeButton" type="button">🖱 Mouse</button>
         <button class="keyboard-toggle" id="keyboardButton" type="button">⌨ Keyboard</button>
       </div>
     </section>
@@ -500,12 +502,14 @@
           <button id="resetButton" type="button">Reset</button>
           <button id="cleanBootButton" type="button">Clean boot</button>
           <button id="fullscreenButton" type="button">Full screen</button>
+          <button id="joyModeButton" type="button">Input: Gamepad</button>
+          <button id="quickStartButton" type="button">Send Start</button>
         </div>
 
         <details class="notes" open>
           <summary>Quick help</summary>
-          <p>Use Load game for .st or .msa first. Fire is now mapped to the Atari ST joystick fire button. If an intro specifically asks for Space or Enter, use Keyboard.</p>
-          <p>BIOS loading is parked for this build. This version sends the game file directly into Hatari and enables Hatari keyboard joystick mode for port 1, the usual ST game port.</p>
+          <p>Use Load game for .st or .msa first. Fire is joystick fire in joystick mode, and left mouse click in mouse mode. If a title screen wants Space, Enter or F1, use Keyboard or Send Start.</p>
+          <p>The Input button switches between virtual Gamepad and keyboard joystick mode, then reloads the emulator. Gamepad is the default because iPhone Safari is fussy with fake keyboard events.</p>
         </details>
 
         <p class="credit">Uses the Mesmotronic browser Hatari build and the existing engine files in engine/hatari.</p>
@@ -518,6 +522,7 @@
         <button class="small-button" id="closeKeyboardButton" type="button">Close</button>
       </div>
       <div class="key-row">
+        <button data-sequence="Start" type="button">Start</button>
         <button data-key="Escape" type="button">Esc</button>
         <button data-key="F1" type="button">F1</button>
         <button data-key="F2" type="button">F2</button>
@@ -589,7 +594,7 @@
 
   <script>
     (() => {
-      const VERSION = "71";
+      const VERSION = "72";
       const ORIGIN = window.location.origin;
       const frame = document.getElementById("emulatorFrame");
       const overlay = document.getElementById("loadingOverlay");
@@ -609,6 +614,12 @@
       const closeKeyboardButton = document.getElementById("closeKeyboardButton");
       const joystick = document.getElementById("joystick");
       const stickThumb = document.getElementById("stickThumb");
+      const fireButton = document.getElementById("fireButton");
+      const fireSubLabel = document.getElementById("fireSubLabel");
+      const modeButton = document.getElementById("modeButton");
+      const joyModeButton = document.getElementById("joyModeButton");
+      const quickStartButton = document.getElementById("quickStartButton");
+      const joystickLabel = document.querySelector(".joystick-label");
 
       let diskFile = null;
       let diskName = "";
@@ -616,6 +627,10 @@
       let bootToken = 0;
       let joystickKeys = new Set();
       let activeJoyTouchId = null;
+      let lastMouseTouch = null;
+      let controlMode = localStorage.getItem("tonyst-control-mode") || "joystick";
+      let joyInputMode = localStorage.getItem("tonyst-joy-input") || "gamepad";
+      let currentJoy = { x: 0, y: 0, fire: false };
       const heldButtonKeys = new Set();
       const isTouchDevice = ("ontouchstart" in window) || (navigator.maxTouchPoints || 0) > 0;
 
@@ -666,7 +681,7 @@
       const sendStartToChild = async () => {
         if (!frame?.contentWindow || !childReady) return;
         const myToken = bootToken;
-        const payload = { type: "tonyst-start", version: VERSION, bootToken: myToken, diskName: diskName || "" };
+        const payload = { type: "tonyst-start", version: VERSION, bootToken: myToken, diskName: diskName || "", joyMode: joyInputMode };
 
         if (diskFile) {
           status("Engine, loading", "Reading selected game file");
@@ -691,6 +706,33 @@
         postToChild({ type: "tonyst-key", code, down: Boolean(down) });
       };
 
+      const sendSequence = (name) => {
+        postToChild({ type: "tonyst-sequence", name });
+      };
+
+      const sendJoy = () => {
+        postToChild({ type: "tonyst-joy", axisX: currentJoy.x, axisY: currentJoy.y, fire: currentJoy.fire });
+      };
+
+      const setJoyAxes = (x, y) => {
+        currentJoy.x = x;
+        currentJoy.y = y;
+        sendJoy();
+      };
+
+      const setJoyFire = (down) => {
+        currentJoy.fire = Boolean(down);
+        sendJoy();
+      };
+
+      const sendMouseMove = (dx, dy) => {
+        postToChild({ type: "tonyst-mouse-move", dx, dy });
+      };
+
+      const sendMouseButton = (down, button = 0) => {
+        postToChild({ type: "tonyst-mouse-button", button, down: Boolean(down) });
+      };
+
       function holdButtonKey(code) {
         if (heldButtonKeys.has(code)) return;
         heldButtonKeys.add(code);
@@ -705,6 +747,8 @@
 
       function releaseHeldButtons() {
         Array.from(heldButtonKeys).forEach((code) => releaseButtonKey(code));
+        setJoyFire(false);
+        sendMouseButton(false, 0);
         document.querySelectorAll(".is-pressed").forEach((button) => button.classList.remove("is-pressed"));
       }
 
@@ -716,11 +760,15 @@
           if (!joystickKeys.has(code)) sendKey(code, true);
         });
         joystickKeys = nextKeys;
+        const axisX = nextKeys.has("ArrowLeft") ? -1 : nextKeys.has("ArrowRight") ? 1 : 0;
+        const axisY = nextKeys.has("ArrowUp") ? -1 : nextKeys.has("ArrowDown") ? 1 : 0;
+        setJoyAxes(axisX, axisY);
       };
 
       function releaseJoystick() {
         setJoystickKeys(new Set());
         activeJoyTouchId = null;
+        lastMouseTouch = null;
         if (stickThumb) stickThumb.style.transform = "translate(-50%, -50%)";
       }
 
@@ -746,6 +794,41 @@
 
         stickThumb.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         setJoystickKeys(next);
+      };
+
+      const updateMousePadFromPoint = (clientX, clientY, isStart = false) => {
+        if (!joystick || !stickThumb) return;
+        const rect = joystick.getBoundingClientRect();
+        if (isStart || !lastMouseTouch) {
+          lastMouseTouch = { x: clientX, y: clientY };
+          stickThumb.style.transform = "translate(-50%, -50%)";
+          return;
+        }
+        const dx = (clientX - lastMouseTouch.x) * 1.45;
+        const dy = (clientY - lastMouseTouch.y) * 1.45;
+        lastMouseTouch = { x: clientX, y: clientY };
+        if (Math.abs(dx) > 0 || Math.abs(dy) > 0) sendMouseMove(dx, dy);
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const max = rect.width * 0.22;
+        const rawX = Math.max(-max, Math.min(max, clientX - cx));
+        const rawY = Math.max(-max, Math.min(max, clientY - cy));
+        stickThumb.style.transform = `translate(calc(-50% + ${rawX}px), calc(-50% + ${rawY}px))`;
+      };
+
+      const applyControlMode = () => {
+        const mouse = controlMode === "mouse";
+        if (joystickLabel) joystickLabel.textContent = mouse ? "Mouse pad" : "Joystick";
+        if (fireSubLabel) fireSubLabel.textContent = mouse ? "Left click" : "Joystick";
+        if (modeButton) modeButton.textContent = mouse ? "🎮 Joystick" : "🖱 Mouse";
+        if (fireButton) fireButton.firstChild.nodeValue = mouse ? "Click" : "Fire";
+        releaseJoystick();
+        releaseHeldButtons();
+      };
+
+      const applyJoyModeLabel = () => {
+        if (joyModeButton) joyModeButton.textContent = `Input: ${joyInputMode === "gamepad" ? "Gamepad" : "Keys"}`;
       };
 
       const findTouch = (touchList, id) => Array.from(touchList || []).find((touch) => touch.identifier === id);
@@ -794,6 +877,25 @@
         if (keyboardPanel) keyboardPanel.hidden = true;
       });
 
+      modeButton?.addEventListener("click", () => {
+        controlMode = controlMode === "mouse" ? "joystick" : "mouse";
+        localStorage.setItem("tonyst-control-mode", controlMode);
+        applyControlMode();
+      });
+
+      joyModeButton?.addEventListener("click", () => {
+        closeMenu();
+        joyInputMode = joyInputMode === "gamepad" ? "keys" : "gamepad";
+        localStorage.setItem("tonyst-joy-input", joyInputMode);
+        applyJoyModeLabel();
+        reloadFrame();
+      });
+
+      quickStartButton?.addEventListener("click", () => {
+        closeMenu();
+        sendSequence("Start");
+      });
+
       loadGameButton?.addEventListener("click", () => {
         closeMenu();
         diskInput?.click();
@@ -837,7 +939,8 @@
           if (activeJoyTouchId !== null || !event.changedTouches.length) return;
           const touch = event.changedTouches[0];
           activeJoyTouchId = touch.identifier;
-          updateJoystickFromPoint(touch.clientX, touch.clientY);
+          if (controlMode === "mouse") updateMousePadFromPoint(touch.clientX, touch.clientY, true);
+          else updateJoystickFromPoint(touch.clientX, touch.clientY);
         }, { passive: false });
 
         joystick.addEventListener("touchmove", (event) => {
@@ -846,7 +949,8 @@
           if (!touch) return;
           event.preventDefault();
           event.stopPropagation();
-          updateJoystickFromPoint(touch.clientX, touch.clientY);
+          if (controlMode === "mouse") updateMousePadFromPoint(touch.clientX, touch.clientY, false);
+          else updateJoystickFromPoint(touch.clientX, touch.clientY);
         }, { passive: false });
 
         ["touchend", "touchcancel"].forEach((type) => {
@@ -865,13 +969,15 @@
           event.stopPropagation();
           if (keyboardPanel) keyboardPanel.hidden = true;
           joystick.setPointerCapture?.(event.pointerId);
-          updateJoystickFromPoint(event.clientX, event.clientY);
+          if (controlMode === "mouse") updateMousePadFromPoint(event.clientX, event.clientY, true);
+          else updateJoystickFromPoint(event.clientX, event.clientY);
         });
 
         joystick.addEventListener("pointermove", (event) => {
           if (!joystick.hasPointerCapture?.(event.pointerId)) return;
           event.preventDefault();
-          updateJoystickFromPoint(event.clientX, event.clientY);
+          if (controlMode === "mouse") updateMousePadFromPoint(event.clientX, event.clientY, false);
+          else updateJoystickFromPoint(event.clientX, event.clientY);
         });
 
         ["pointerup", "pointercancel", "lostpointercapture"].forEach((type) => {
@@ -883,9 +989,33 @@
         });
       }
 
-      document.querySelectorAll("[data-key]").forEach((button) => {
+      const pressControlButton = (button, down) => {
         const code = button.dataset.key;
-        if (!code) return;
+        const sequence = button.dataset.sequence;
+
+        if (sequence && down) {
+          sendSequence(sequence);
+          return;
+        }
+
+        if (button.id === "fireButton") {
+          if (controlMode === "mouse") {
+            sendMouseButton(down, 0);
+            return;
+          }
+          setJoyFire(down);
+          // Keyboard fallback for Hatari's cursor-key joystick mode.
+          if (code) sendKey(code, down);
+          return;
+        }
+
+        if (code) sendKey(code, down);
+      };
+
+      document.querySelectorAll("[data-key], [data-sequence]").forEach((button) => {
+        const code = button.dataset.key;
+        const sequence = button.dataset.sequence;
+        if (!code && !sequence) return;
 
         if (isTouchDevice) {
           const activeTouches = new Set();
@@ -893,10 +1023,10 @@
           button.addEventListener("touchstart", (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (button.id === "fireButton" && keyboardPanel) keyboardPanel.hidden = true;
+            if ((button.id === "fireButton" || sequence) && keyboardPanel) keyboardPanel.hidden = true;
             Array.from(event.changedTouches).forEach((touch) => activeTouches.add(touch.identifier));
             button.classList.add("is-pressed");
-            holdButtonKey(code);
+            pressControlButton(button, true);
           }, { passive: false });
 
           const touchEnd = (event) => {
@@ -909,7 +1039,7 @@
             event.stopPropagation();
             if (activeTouches.size === 0) {
               button.classList.remove("is-pressed");
-              releaseButtonKey(code);
+              pressControlButton(button, false);
             }
           };
 
@@ -919,14 +1049,14 @@
           const down = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (button.id === "fireButton" && keyboardPanel) keyboardPanel.hidden = true;
+            if ((button.id === "fireButton" || sequence) && keyboardPanel) keyboardPanel.hidden = true;
             button.classList.add("is-pressed");
-            holdButtonKey(code);
+            pressControlButton(button, true);
           };
           const up = (event) => {
             event.preventDefault();
             button.classList.remove("is-pressed");
-            releaseButtonKey(code);
+            pressControlButton(button, false);
           };
           button.addEventListener("pointerdown", down);
           button.addEventListener("pointerup", up);
@@ -942,6 +1072,8 @@
         }
       });
 
+      applyControlMode();
+      applyJoyModeLabel();
       setFileLabel();
       showOverlay("Starting Hatari WebAssembly");
     })();
